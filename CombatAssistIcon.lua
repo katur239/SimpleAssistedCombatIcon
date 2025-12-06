@@ -6,42 +6,39 @@ local GetActionInfo     = GetActionInfo
 local GetBindingKey     = GetBindingKey
 local GetBindingText    = GetBindingText
 local InCombatLockdown  = InCombatLockdown
-local FindSpellOverrideByID = FindSpellOverrideByID
+local FindBaseSpellByID = FindBaseSpellByID
 local C_CVar            = C_CVar
 local C_Spell           = C_Spell
 local C_SpellBook       = C_SpellBook
+local C_ActionBar       = C_ActionBar
 local C_AssistedCombat  = C_AssistedCombat
 
 local LSM = LibStub("LibSharedMedia-3.0")
 local ACR = LibStub("AceConfigRegistry-3.0")
 local Masque = LibStub("Masque",true)
 
-local cacheDirty = false
-local lastCacheUpdateTime = GetTime()
-local BUTTONS_PER_BAR = 12
-local spellBindingTextCache = {}
-local RotationSpells = {}
+local LookupActionBySlot = {}
+local LookupButtonByAction = {}
 
 local DefaultActionSlotMap = {
     --Default UI Slot mapping https://warcraft.wiki.gg/wiki/Action_slot
     --Eventually will look at making sure other addons work...
-    { prefix = "ACTIONBUTTON",          start = 1,  last = 12,  priority = 2 },--Action Bar 1 (Main Bar)
-    { prefix = "ACTIONBUTTON",          start = 13, last = 24,  priority = 9 },--Action Bar 1 (Page 2)
-    { prefix = "MULTIACTIONBAR3BUTTON", start = 25, last = 36,  priority = 1 },--Action Bar 4 (Right)
-    { prefix = "MULTIACTIONBAR4BUTTON", start = 37, last = 48,  priority = 1 },--Action Bar 5 (Left)
-    { prefix = "MULTIACTIONBAR2BUTTON", start = 49, last = 60,  priority = 1 },--Action Bar 3 (Bottom Right)
-    { prefix = "MULTIACTIONBAR1BUTTON", start = 61, last = 72,  priority = 1 },--Action Bar 2 (Bottom Left)
-    { prefix = "ACTIONBUTTON",          start = 73, last = 84,  priority = 1 },--Class Bar 1
-    { prefix = "ACTIONBUTTON",          start = 85, last = 96,  priority = 1 },--Class Bar 2
-    { prefix = "ACTIONBUTTON",          start = 97, last = 108, priority = 1 },--Class Bar 3
-    { prefix = "ACTIONBUTTON",          start = 109,last = 120, priority = 1 },--Class Bar 4
-    { prefix = "ACTIONBUTTON",          start = 121,last = 132, priority = 9 },--Action Bar 1 (Skyriding)
-  --{ prefix = "UNKNOWN",               start = 133,last = 144, priority = 9 },--Unknown
-    { prefix = "MULTIACTIONBAR5BUTTON", start = 145,last = 156, priority = 1 },--Action Bar 6
-    { prefix = "MULTIACTIONBAR6BUTTON", start = 157,last = 168, priority = 1 },--Action Bar 7
-    { prefix = "MULTIACTIONBAR7BUTTON", start = 169,last = 180, priority = 1 },--Action Bar 8
+    { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="ActionButton",             start = 1,  last = 12},--Action Bar 1 (Main Bar)
+    { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="ActionButton",             start = 13, last = 24},--Action Bar 1 (Page 2)
+    { actionPrefix = "MULTIACTIONBAR3BUTTON", buttonPrefix ="MultiBarRightButton",      start = 25, last = 36},--Action Bar 4 (Right)
+    { actionPrefix = "MULTIACTIONBAR4BUTTON", buttonPrefix ="MultiBarLeftButton",       start = 37, last = 48},--Action Bar 5 (Left)
+    { actionPrefix = "MULTIACTIONBAR2BUTTON", buttonPrefix ="MultiBarBottomRightButton",start = 49, last = 60},--Action Bar 3 (Bottom Right)
+    { actionPrefix = "MULTIACTIONBAR1BUTTON", buttonPrefix ="MultiBarBottomLeftButton", start = 61, last = 72},--Action Bar 2 (Bottom Left)
+    { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="ActionButton",             start = 73, last = 84},--Class Bar 1
+    { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="ActionButton",             start = 85, last = 96},--Class Bar 2
+    { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="ActionButton",             start = 97, last = 108},--Class Bar 3
+    { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="ActionButton",             start = 109,last = 120},--Class Bar 4
+    { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="ActionButton",             start = 121,last = 132},--Action Bar 1 (Skyriding)
+  --{ actionPrefix = "UNKNOWN",               buttonPrefix ="",                         start = 133,last = 144},--Unknown
+    { actionPrefix = "MULTIACTIONBAR5BUTTON", buttonPrefix ="MultiBar5Button",          start = 145,last = 156},--Action Bar 6
+    { actionPrefix = "MULTIACTIONBAR6BUTTON", buttonPrefix ="MultiBar6Button",          start = 157,last = 168},--Action Bar 7
+    { actionPrefix = "MULTIACTIONBAR7BUTTON", buttonPrefix ="MultiBar7Button",          start = 169,last = 180},--Action Bar 8
 }
-local ActionSlotMap = DefaultActionSlotMap
 
 local Colors = {
 	UNLOCKED = CreateColor(0, 1, 0, 1.0),
@@ -61,14 +58,13 @@ local frameStrata = {
 }
 
 local function IsRelevantAction(actionType, subType)
-    return (actionType == "macro" and subType == "spell")
-        or (actionType == "spell" and subType ~= "assistedcombat")
+    return (actionType == "spell" and subType ~= "assistedcombat")
 end
 
-local function GetBindingForButton(button)
-    if not button then return nil end
+local function GetBindingForAction(action)
+    if not action then return nil end
 
-    local key = GetBindingKey(button)
+    local key = GetBindingKey(action)
     if not key then return nil end
 
     local text = GetBindingText(key, "KEY_")
@@ -81,34 +77,23 @@ local function GetBindingForButton(button)
 end
 
 local function GetKeyBindForSpellID(spellID)
-    local OverrideSpellID = FindSpellOverrideByID(spellID)
-    if spellBindingTextCache[OverrideSpellID] then
-        return spellBindingTextCache[OverrideSpellID]
-    end
+    local baseSpellID = FindBaseSpellByID(spellID)
 
-    for _, bar in ipairs(ActionSlotMap) do
-        for i = 1, BUTTONS_PER_BAR do
-            local slot = bar.start + i - 1
-            local button = bar.prefix .. i
-            
-            local actionType, id, subType = GetActionInfo(slot)
+    local slots = C_ActionBar.FindSpellActionButtons(baseSpellID)
+    if not slots then return end
 
-            if IsRelevantAction(actionType, subType) and id == OverrideSpellID then
-                local text = GetBindingForButton(button)
-                if text then
-                    spellBindingTextCache[OverrideSpellID] = text
+    for _, slot in ipairs(slots) do
+        local actionType, _, subType = GetActionInfo(slot)
+        if IsRelevantAction(actionType, subType) then
+            local action = LookupActionBySlot[slot]
+            local buttonName = LookupButtonByAction[action]
+            local button = _G[buttonName]
+            if button and button.action == slot then
+                local text = GetBindingForAction(action)
+                if text then 
                     return text
                 end
             end
-        end
-    end
-end
-
-local function UpdateCache()
-    wipe(spellBindingTextCache)
-    for _, spellID in ipairs(C_AssistedCombat.GetRotationSpells()) do
-        if C_SpellBook.IsSpellInSpellBook(spellID) then
-            GetKeyBindForSpellID(spellID)
         end
     end
 end
@@ -123,22 +108,19 @@ local function HideLikelyMasqueRegions(frame)
 end
 
 local function LoadActionSlotMap()
-    table.sort(DefaultActionSlotMap, function(a, b)
-        if a.priority ~= b.priority then
-            return a.priority < b.priority   -- smaller = higher priority
+    for _, info in ipairs(DefaultActionSlotMap) do
+        for id = info.start, info.last do
+            local index = id - info.start + 1
+            LookupActionBySlot[id] = info.actionPrefix .. index
+            LookupButtonByAction[LookupActionBySlot[id]] = info.buttonPrefix .. index
         end
-        return a.start < b.start
-    end)
-
-    ActionSlotMap = DefaultActionSlotMap
+    end
 end
 
 AssistedCombatIconMixin = {}
 
 function AssistedCombatIconMixin:OnLoad()
     self:RegisterEvent("PLAYER_LOGIN")
-    self:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
-    self:RegisterEvent("UPDATE_BINDINGS")
     self:RegisterEvent("SPELL_RANGE_CHECK_UPDATE")
     self:RegisterEvent("SPELL_UPDATE_COOLDOWN")
     self:RegisterEvent("PLAYER_REGEN_DISABLED")
@@ -149,18 +131,12 @@ function AssistedCombatIconMixin:OnLoad()
     self:RegisterForDrag("LeftButton")
 
     self.spellID = 61304
-    self.lastUpdateTime = GetTime()
-    self.combatUpdateInterval = C_CVar.GetCVar("assistedCombatIconUpdateRate") or 0.3
+    self.combatUpdateInterval = tonumber(C_CVar.GetCVar("assistedCombatIconUpdateRate")) or 0.3
+    self.lastUpdateTime = 0
     self.updateInterval = 1
 
     self.Keybind:SetParent(self.Overlay)
     self:SetAttribute("ignoreFramePositionManager", true)
-
-    for _, spellID in ipairs(C_AssistedCombat.GetRotationSpells()) do
-        if C_SpellBook.IsSpellInSpellBook(spellID) then
-            RotationSpells[spellID] = true
-        end
-    end
 
     if Masque then
         self:SetBackdrop({
@@ -194,7 +170,6 @@ end
 function AssistedCombatIconMixin:OnAddonLoaded()
     self.db = addon.db.profile
     self:ApplyOptions()
-
 end
 
 function AssistedCombatIconMixin:OnEvent(event, ...)
@@ -211,15 +186,6 @@ function AssistedCombatIconMixin:OnEvent(event, ...)
         self:SetShown(true)
     elseif event == "PLAYER_TARGET_CHANGED" and self.db.displayMode == "HOSTILE_TARGET" then
         self:SetShown(UnitExists("target") and UnitCanAttack("player", "target"))
-    elseif event == "UPDATE_BINDINGS" then
-        lastCacheUpdateTime = GetTime()
-        cacheDirty = true
-    elseif event == "ACTIONBAR_SLOT_CHANGED" then
-        local now = GetTime()
-        if (now - lastCacheUpdateTime) < 3 and InCombatLockdown() then return end
-        lastCacheUpdateTime = now
-
-        cacheDirty = true
     elseif event == "PLAYER_LOGIN" then
         LoadActionSlotMap()
     elseif event == "CVAR_UPDATE" then 
@@ -230,28 +196,19 @@ function AssistedCombatIconMixin:OnEvent(event, ...)
     end
 end
 
-function AssistedCombatIconMixin:OnUpdate()
-    local now = GetTime()
+function AssistedCombatIconMixin:OnUpdate(elapsed)
     local interval = InCombatLockdown() and self.combatUpdateInterval or self.updateInterval
-    if (now - self.lastUpdateTime) < tonumber(interval) then return end
-    self.lastUpdateTime = now
-
-    local doUpdate = false
-
-    if cacheDirty then
-        UpdateCache()
-        cacheDirty = false
-        doUpdate = true
+    local timeLeft = self.lastUpdateTime - elapsed
+    if timeLeft > 0 then 
+        self.lastUpdateTime = timeLeft
+        return
     end
+    self.lastUpdateTime = interval
 
     local nextSpell = C_AssistedCombat.GetNextCastSpell()
     if nextSpell ~= self.spellID and nextSpell ~= 0 and nextSpell ~= nil then
         C_Spell.EnableSpellRangeCheck(self.spellID, false)
         self.spellID = nextSpell
-        doUpdate = true
-    end
-
-    if doUpdate then 
         self:Update()
         self:UpdateCooldown()
     end
@@ -392,8 +349,3 @@ function AssistedCombatIconMixin:OnDragStop()
 
     ACR:NotifyChange(addonName)
 end
-
-
---SACIProfiler:HookMixin(AssistedCombatIconMixin,"AssistedCombatIconMixin")
-
--- /dump SACIProfiler:Report(5)

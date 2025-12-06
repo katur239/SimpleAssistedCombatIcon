@@ -409,10 +409,10 @@ function addon:SetupOptions()
         },
     }
 
-    LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, options)
+    LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, options, {"saci"})
     LibStub("AceConfigDialog-3.0"):AddToBlizOptions(addonName, addonTitle)    
     
-    self:RegisterChatCommand("saci", "OpenConfig")
+    --self:RegisterChatCommand("saci", "OpenConfig")
     
     AddonCompartmentFrame:RegisterAddon({
         text = addonTitle,
