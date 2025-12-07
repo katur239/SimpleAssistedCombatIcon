@@ -177,6 +177,7 @@ function AssistedCombatIconMixin:OnLoad()
 end
 
 function AssistedCombatIconMixin:OnAddonLoaded()
+    --C_CVar.SetCVar("assistedCombatIconUpdateRate",0.25)
     self.db = addon.db.profile
     self:ApplyOptions()
 end
