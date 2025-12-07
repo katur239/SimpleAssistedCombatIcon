@@ -188,7 +188,7 @@ function AssistedCombatIconMixin:OnEvent(event, ...)
         local spellID, inRange, checksRange = ...
         if spellID ~= self.spellID then return end
         self.spellOutOfRange = checksRange == true and inRange == false
-        self:Update()
+        --self:Update()
     elseif event == "PLAYER_REGEN_ENABLED" and self.db.displayMode == "IN_COMBAT" then
         self:SetShown(false)
     elseif event == "PLAYER_REGEN_DISABLED" and self.db.displayMode == "IN_COMBAT" then
@@ -218,9 +218,10 @@ function AssistedCombatIconMixin:OnUpdate(elapsed)
     if nextSpell ~= self.spellID and nextSpell ~= 0 and nextSpell ~= nil then
         C_Spell.EnableSpellRangeCheck(self.spellID, false)
         self.spellID = nextSpell
-        self:Update()
         self:UpdateCooldown()
     end
+    
+    self:Update()
 end
 
 function AssistedCombatIconMixin:Update()
