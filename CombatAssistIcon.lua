@@ -17,6 +17,9 @@ local LSM = LibStub("LibSharedMedia-3.0")
 local ACR = LibStub("AceConfigRegistry-3.0")
 local Masque = LibStub("Masque",true)
 
+local BarAddonLoaded = false
+local AddonLookupActionBySlot = {}
+local AddonLookupButtonByAction = {}
 local LookupActionBySlot = {}
 local LookupButtonByAction = {}
 
@@ -77,12 +80,17 @@ local function GetBindingForAction(action)
     return text
 end
 
-function GetButtonFrameByAction(action)
-    if not action then return nil end
+local function GetButtonFrameByAction(addonAction, defaultAction)
+    local buttonName
 
-    local buttonName = LookupButtonByAction[action]
-    if not buttonName then return nil end
+    if BarAddonLoaded and addonAction then
+        buttonName = AddonLookupButtonByAction[addonAction]
+        if buttonName and _G[buttonName] then
+            return _G[buttonName]
+        end
+    end
 
+    buttonName = LookupButtonByAction[defaultAction]
     return _G[buttonName]
 end
 
@@ -95,13 +103,19 @@ local function GetKeyBindForSpellID(spellID)
     for _, slot in ipairs(slots) do
         local actionType, _, subType = GetActionInfo(slot)
         if IsRelevantAction(actionType, subType) then
-            local action = LookupActionBySlot[slot]
-            local buttonFrame = GetButtonFrameByAction(action)
-            if buttonFrame and buttonFrame.action == slot then
-                local text = GetBindingForAction(action)
-                if text then 
-                    return text
-                end
+            
+            local defaultAction = LookupActionBySlot[slot]
+            local addonAction = BarAddonLoaded and AddonLookupActionBySlot[slot]
+
+            local text = GetBindingForAction(defaultAction)
+            if not text and addonAction then
+                text = GetBindingForAction(addonAction)
+            end
+
+            local buttonFrame = GetButtonFrameByAction(addonAction, defaultAction)
+
+            if buttonFrame and buttonFrame.action == slot and text then
+                return text
             end
         end
     end
@@ -117,6 +131,20 @@ local function HideLikelyMasqueRegions(frame)
 end
 
 local function LoadActionSlotMap()
+    if C_AddOns.IsAddOnLoaded("Dominos") then
+        for slot = 1, 180 do
+            AddonLookupActionBySlot[slot] = "CLICK DominosActionButton"..slot..":HOTKEY"
+            AddonLookupButtonByAction[AddonLookupActionBySlot[slot]] = "DominosActionButton"..slot
+        end
+        BarAddonLoaded = true
+    elseif C_AddOns.IsAddOnLoaded("Bartender4") then
+        for slot = 1, 180 do
+            AddonLookupActionBySlot[slot] = "CLICK BT4Button"..slot..":Keybind"
+            AddonLookupButtonByAction[AddonLookupActionBySlot[slot]] = "BT4Button"..slot
+        end
+        BarAddonLoaded = true
+    end
+
     for _, info in ipairs(DefaultActionSlotMap) do
         for id = info.start, info.last do
             local index = id - info.start + 1
