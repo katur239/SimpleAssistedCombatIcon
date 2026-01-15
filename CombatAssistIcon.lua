@@ -59,6 +59,27 @@ local frameStrata = {
     "TOOLTIP",
 }
 
+local bindingOverrides = {
+    ["Mouse Button "]     = "MB",
+    ["Num Pad "]          = "NP",
+    ["Middle Mouse"]      = "MMB",
+    ["Mouse Wheel Up"]    = "MWU",
+    ["Mouse Wheel Down"]  = "MWD",
+    ["Capslock"]          = "Caps",
+    ["Backspace"]         = "BkSp",
+    ["Spacebar"]          = "Spbar",
+    ["Delete"]            = "Del",
+    ["Page Up"]           = "PgUp",
+    ["Page Down"]         = "PgDn",
+    ["Insert"]            = "Ins",
+    ["Num Lock"]          = "NmLk",
+    ["Left Arrow"]        = "Left",
+    ["Right Arrow"]       = "Right",
+    ["Up Arrow"]          = "Up",
+    ["Down Arrow"]        = "Down",
+}
+
+
 local function IsRelevantAction(actionType, subType)
     return (actionType == "macro" and subType == "spell")
         or (actionType == "spell" and subType ~= "assistedcombat")
@@ -73,8 +94,11 @@ local function GetBindingForAction(action)
     local text = GetBindingText(key,"KEY_")
     if not text or text == "" then return nil end
 
-    text = text:gsub("Mouse Button ", "MB", 1)
-    text = text:gsub("Middle Mouse", "MMB", 1)
+    local count = 0
+    for binding, abbrv in pairs(bindingOverrides) do
+        text, count = text:gsub(binding, abbrv, 1)
+        if count > 0 then return text end
+    end
 
     return text
 end
