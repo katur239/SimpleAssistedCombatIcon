@@ -17,6 +17,8 @@ local LSM = LibStub("LibSharedMedia-3.0")
 local ACR = LibStub("AceConfigRegistry-3.0")
 local Masque = LibStub("Masque",true)
 
+local HasBartender = false
+local HasDominos = false
 local BarAddonLoaded = false
 local AddonLookupActionBySlot = {}
 local AddonLookupButtonByAction = {}
@@ -103,13 +105,27 @@ local function GetBindingForAction(action)
     return text
 end
 
-local function GetButtonFrameByAction(addonAction, defaultAction)
+local function GetButtonFrameBySlot(slot)
+    if HasBartender then
+        for i = 1, 12 do
+            local btn = _G["BT4Button" .. i]
+            if btn and btn:GetAttribute("action") == slot then
+                return btn
+            end
+        end
+    end
+end
+
+local function GetButtonFrameByAction(addonAction, defaultAction, slot)
     local buttonName
 
     if BarAddonLoaded and addonAction then
         buttonName = AddonLookupButtonByAction[addonAction]
         if buttonName and _G[buttonName] then
             return _G[buttonName]
+        else
+            local btn = GetButtonFrameBySlot(slot)
+            if btn then return btn end
         end
     end
 
@@ -130,12 +146,23 @@ local function GetKeyBindForSpellID(spellID)
             local defaultAction = LookupActionBySlot[slot]
             local addonAction = BarAddonLoaded and AddonLookupActionBySlot[slot]
 
-            local text = GetBindingForAction(defaultAction)
-            if not text and addonAction then
-                text = GetBindingForAction(addonAction)
-            end
-
-            local buttonFrame = GetButtonFrameByAction(addonAction, defaultAction)
+            local buttonFrame = GetButtonFrameByAction(addonAction, defaultAction, slot) 
+            
+            local text = BarAddonLoaded and GetBindingForAction(addonAction) 
+            
+            if BarAddonLoaded and not text then 
+                if HasBartender then 
+                    addonAction = "CLICK "..buttonFrame:GetName()..":Keybind" 
+                elseif HasDominos then 
+                    addonAction = "CLICK "..buttonFrame:GetName()..":HOTKEY" 
+                end 
+                
+                text = GetBindingForAction(addonAction) 
+            end 
+            
+            if not text then 
+                text = GetBindingForAction(defaultAction)
+            end 
 
             if buttonFrame and buttonFrame.action == slot and text then
                 return text
@@ -159,14 +186,16 @@ local function LoadActionSlotMap()
             AddonLookupActionBySlot[slot] = "CLICK DominosActionButton"..slot..":HOTKEY"
             AddonLookupButtonByAction[AddonLookupActionBySlot[slot]] = "DominosActionButton"..slot
         end
-        BarAddonLoaded = true
+        HasDominos  = true
     elseif C_AddOns.IsAddOnLoaded("Bartender4") then
         for slot = 1, 180 do
             AddonLookupActionBySlot[slot] = "CLICK BT4Button"..slot..":Keybind"
             AddonLookupButtonByAction[AddonLookupActionBySlot[slot]] = "BT4Button"..slot
         end
-        BarAddonLoaded = true
+        HasBartender = true
     end
+
+    BarAddonLoaded = HasBartender or HasDominos
 
     for _, info in ipairs(DefaultActionSlotMap) do
         for id = info.start, info.last do
