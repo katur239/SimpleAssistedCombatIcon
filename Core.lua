@@ -62,6 +62,8 @@ function addon:OnInitialize()
 
     self:SetupOptions()
 
+    DataBroker:Initialize()
+
     self:UpdateDB()
 end
 
@@ -219,7 +221,7 @@ function addon:SetupOptions()
                                                         type = "toggle",
                                                         name = "Always Show",
                                                         order = 1,
-                                                        width = 1.1,
+                                                        width = 1.2,
                                                         get = function(info)
                                                             return addon.db.profile.display.ALWAYS
                                                         end,
@@ -237,7 +239,7 @@ function addon:SetupOptions()
                                                         type = "toggle",
                                                         name = "Hide while mounted",
                                                         order = 2,
-                                                        width = 1.1,
+                                                        width = 1.2,
                                                         get = function(info)
                                                             return addon.db.profile.display.HideOnMount
                                                         end,
@@ -258,7 +260,7 @@ function addon:SetupOptions()
                                                         type = "toggle",
                                                         name = "Show only with target",
                                                         order = 1,
-                                                        width = 1.1,
+                                                        width = 1.2,
                                                         get = function(info)
                                                             return addon.db.profile.display.HOSTILE_TARGET
                                                         end,
@@ -272,7 +274,7 @@ function addon:SetupOptions()
                                                         type = "toggle",
                                                         name = "Hide while in a Vehicle",
                                                         order = 2,
-                                                        width = 1.1,
+                                                        width = 1.2,
                                                         get = function(info)
                                                             return addon.db.profile.display.HideInVehicle
                                                         end,
@@ -291,9 +293,9 @@ function addon:SetupOptions()
                                                 args = {
                                                     HideAsHealer = {
                                                         type = "toggle",
-                                                        name = "Hide while in Healing Role",
+                                                        name = "Hide while in Healing Spec",
                                                         order = 2,
-                                                        width = 1.1,
+                                                        width = 1.2,
                                                         get = function(info)
                                                             return addon.db.profile.display.HideAsHealer
                                                         end,
@@ -305,9 +307,9 @@ function addon:SetupOptions()
                                                     },
                                                     HideAsTank = {
                                                         type = "toggle",
-                                                        name = "Hide while in Tanking Role",
+                                                        name = "Hide while in Tanking Spec",
                                                         order = 2,
-                                                        width = 1.1,
+                                                        width = 1.2,
                                                         get = function(info)
                                                             return addon.db.profile.display.HideAsTank
                                                         end,
