@@ -138,7 +138,7 @@ function addon:SetupOptions()
                         get = function() return addon.db.profile.enabled end,
                         set = function(_, val)
                             addon.db.profile.enabled = val
-                            if val then 
+                            if val then
                                 AssistedCombatIconFrame:Start()
                             else
                                 AssistedCombatIconFrame:Stop()
@@ -223,7 +223,7 @@ function addon:SetupOptions()
                                                         get = function(info)
                                                             return addon.db.profile.display.ALWAYS
                                                         end,
-                                                        set = function(info, val)        
+                                                        set = function(info, val)
                                                             if not val then
                                                                 return
                                                             end
@@ -289,20 +289,6 @@ function addon:SetupOptions()
                                                 name = "",
                                                 order = 3,
                                                 args = {
-                                                    IN_COMBAT = {
-                                                        type = "toggle",
-                                                        name = "Show only in combat",
-                                                        order = 1,
-                                                        width = 1.1,
-                                                        get = function(info)
-                                                            return addon.db.profile.display.IN_COMBAT
-                                                        end,
-                                                        set = function(info, val)
-                                                            addon.db.profile.display.IN_COMBAT = val
-                                                            addon:NormalizeDisplayOptions("IN_COMBAT", val)
-                                                            AssistedCombatIconFrame:UpdateVisibility()
-                                                        end,
-                                                    },
                                                     HideAsHealer = {
                                                         type = "toggle",
                                                         name = "Hide while in Healing Role",
@@ -314,6 +300,41 @@ function addon:SetupOptions()
                                                         set = function(info, val)
                                                             addon.db.profile.display.HideAsHealer = val
                                                             addon:NormalizeDisplayOptions("HideAsHealer", val)
+                                                            AssistedCombatIconFrame:UpdateVisibility()
+                                                        end,
+                                                    },
+                                                    HideAsTank = {
+                                                        type = "toggle",
+                                                        name = "Hide while in Tanking Role",
+                                                        order = 2,
+                                                        width = 1.1,
+                                                        get = function(info)
+                                                            return addon.db.profile.display.HideAsTank
+                                                        end,
+                                                        set = function(info, val)
+                                                            addon.db.profile.display.HideAsTank = val
+                                                            addon:NormalizeDisplayOptions("HideAsTank", val)
+                                                            AssistedCombatIconFrame:UpdateVisibility()
+                                                        end,
+                                                    },
+                                                },
+                                            },
+                                            r4 = {
+                                                type = "group",
+                                                name = "",
+                                                order = 4,
+                                                args = {
+                                                    IN_COMBAT = {
+                                                        type = "toggle",
+                                                        name = "Show only in combat",
+                                                        order = 1,
+                                                        width = 1.1,
+                                                        get = function(info)
+                                                            return addon.db.profile.display.IN_COMBAT
+                                                        end,
+                                                        set = function(info, val)
+                                                            addon.db.profile.display.IN_COMBAT = val
+                                                            addon:NormalizeDisplayOptions("IN_COMBAT", val)
                                                             AssistedCombatIconFrame:UpdateVisibility()
                                                         end,
                                                     },
@@ -523,7 +544,7 @@ function addon:SetupOptions()
                                 type = "select",
                                 name = "Font",
                                 desc = "Choose the font used for the keybind text",
-                                dialogControl = "LSM30_Font", 
+                                dialogControl = "LSM30_Font",
                                 values = LSM:HashTable(LSM.MediaType.FONT),
                                 get = function() return addon.db.profile.Keybind.font end,
                                 set = function(_, val)
@@ -679,7 +700,7 @@ function addon:SetupOptions()
     AceConfigDialog:AddToBlizOptions(addonName, addonTitle)
 
     self:RegisterChatCommand("saci", "OpenConfig")
-    
+
     AddonCompartmentFrame:RegisterAddon({
         text = addonTitle,
         icon = C_AddOns.GetAddOnMetadata(addonName, "IconTexture"),

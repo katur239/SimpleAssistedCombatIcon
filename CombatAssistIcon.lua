@@ -430,6 +430,7 @@ function AssistedCombatIconMixin:UpdateVisibility()
         or (display.IN_COMBAT and not InCombatLockdown())
         or (display.HideInVehicle and UnitInVehicle("player"))
         or (display.HideAsHealer and UnitGroupRolesAssigned("player") == "HEALER")
+        or (display.HideAsTank and UnitGroupRolesAssigned("player") == "TANK")
         or (display.HideOnMount and IsMounted())
     then
         self:SetShown(false)
