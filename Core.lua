@@ -30,6 +30,7 @@ local defaults = {
             bling = true,
         },
         iconSize = 48,
+        alpha = 1,
         border = {
             show = true,
             thickness = 2,
@@ -342,6 +343,27 @@ function addon:SetupOptions()
                                         order = 2,
                                         width = "normal",
                                     },
+                                    alpha = {
+                                        type = "range",
+                                        name = " Alpha",
+                                        desc = "Change the alpha of the icon",
+                                        min = 0, max = 1, step = 0.01,
+                                        get = function() return addon.db.profile.alpha end,
+                                        set = function(_, val)
+                                            addon.db.profile.alpha = val
+                                            AssistedCombatIconFrame:ApplyOptions()
+                                        end,
+                                        order = 3,
+                                        width = "normal",
+                                    }
+                                }
+                            },
+                            grp3 = {
+                                type = "group",
+                                name = "",
+                                inline = true,
+                                order = 3,
+                                args = {
                                     borderColor = {
                                         type = "color",
                                         name = " Border Color",
@@ -356,7 +378,7 @@ function addon:SetupOptions()
                                             AssistedCombatIconFrame:ApplyOptions()
                                         end,
                                         order = 4,
-                                        width = 0.66,
+                                        width = "normal",
                                     },
                                     borderThickness = {
                                         type = "range",
@@ -369,7 +391,7 @@ function addon:SetupOptions()
                                             AssistedCombatIconFrame:ApplyOptions()
                                         end,
                                         order = 5,
-                                        width = 0.66,
+                                        width = "normal",
                                     },
                                 },
                             },

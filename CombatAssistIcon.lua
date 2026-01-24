@@ -516,6 +516,7 @@ function AssistedCombatIconMixin:ApplyOptions()
         self.MSQGroup:ReSkin()
     end
     
+    self:SetAlpha(db.alpha)
     self:UpdateVisibility()
     self:Update()
 end
