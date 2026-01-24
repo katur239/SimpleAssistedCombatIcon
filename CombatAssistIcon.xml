@@ -14,6 +14,7 @@
             </Layer>
             <Layer level="OVERLAY">
                 <FontString parentKey="Keybind" inherits="NumberFontNormalSmall" justifyH="RIGHT" />
+                <FontString parentKey="Count" inherits="NumberFontNormal" justifyH="RIGHT" />
             </Layer>
         </Layers>
         <Frames>

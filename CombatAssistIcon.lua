@@ -13,6 +13,8 @@ local C_SpellBook       = C_SpellBook
 local C_ActionBar       = C_ActionBar
 local C_AssistedCombat  = C_AssistedCombat
 
+local issecretvalue = issecretvalue or function() return false end
+
 local LSM = LibStub("LibSharedMedia-3.0")
 local ACR = LibStub("AceConfigRegistry-3.0")
 local Masque = LibStub("Masque",true)
@@ -91,6 +93,65 @@ local function IsRelevantAction(actionType, subType, slot)
     return (actionType == "macro" and subType == "spell")
         or (actionType == "spell" and subType ~= "assistedcombat")
         or (slot > 900)
+end
+
+local function GetSpellCountSafe(spellID)
+    if not spellID then return "" end
+
+    local overrideID = C_Spell and C_Spell.GetOverrideSpell and C_Spell.GetOverrideSpell(spellID) or spellID
+
+    -- Scan action slots to find the spell/macro
+    -- We scan all potential action bar slots (1-180)
+    local foundSecret = nil
+    for i = 1, 180 do
+        local actionType, id = GetActionInfo(i)
+        local match = false
+        if actionType == "spell" and (id == spellID or id == overrideID) then
+            match = true
+        elseif actionType == "macro" then
+            local _, _, macroSpell = GetMacroSpell(id)
+            if macroSpell == spellID or macroSpell == overrideID then
+                match = true
+            end
+        end
+
+        if match then
+            -- Try GetActionDisplayCount first (modern API)
+            local count = C_ActionBar and C_ActionBar.GetActionDisplayCount and C_ActionBar.GetActionDisplayCount(i)
+            if not count or count == 0 then
+                count = GetActionCount(i)
+            end
+
+            -- If it's a number, we can safely compare it. 
+            -- We hide 0 as requested, and show 1+ (standard for charges/stacks).
+            if type(count) == "number" then
+                if count > 0 then
+                    return count
+                end
+            elseif issecretvalue(count) then
+                -- Save secret fallback if we don't find a concrete number
+                foundSecret = count
+            end
+        end
+    end
+
+    -- If we found a secret match but no concrete non-zero number, use the secret
+    if foundSecret then
+        return foundSecret
+    end
+
+    -- Specialized bars fallback (Stance/Pet)
+    for i = 901, 910 do
+        local actionType, id = GetActionInfo(i)
+        if actionType == "spell" and (id == spellID or id == overrideID) then
+            local count = GetActionCount(i)
+            if type(count) == "number" and count > 0 then
+                return count
+            end
+        end
+    end
+
+    return ""
 end
 
 local function GetBindingForAction(action)
@@ -297,6 +358,7 @@ function AssistedCombatIconMixin:OnLoad()
     self.updateInterval = 1
 
     self.Keybind:SetParent(self.Overlay)
+    self.Count:SetParent(self.Overlay)
 
     if Masque then
         self:SetBackdrop({
@@ -443,6 +505,9 @@ function AssistedCombatIconMixin:Update()
     local text = db.Keybind.show and GetKeyBindForSpellID(spellID) or ""
     self.Keybind:SetText(text)
 
+    local countText = GetSpellCountSafe(spellID)
+    self.Count:SetText(countText)
+
     self.Icon:SetTexture(C_Spell.GetSpellTexture(spellID))
 
     if not db.locked then
@@ -494,6 +559,11 @@ function AssistedCombatIconMixin:ApplyOptions()
     self.Keybind:SetPoint(kb.point, self, kb.point, kb.X, kb.Y)
     self.Keybind:SetTextColor(kb.fontColor.r, kb.fontColor.g, kb.fontColor.b, kb.fontColor.a)
     self.Keybind:SetFont(LSM:Fetch(LSM.MediaType.FONT, kb.font), kb.fontSize, kb.fontOutline and "OUTLINE" or "")
+
+    self.Count:ClearAllPoints()
+    self.Count:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -2, 2)
+    self.Count:SetTextColor(kb.fontColor.r, kb.fontColor.g, kb.fontColor.b, kb.fontColor.a)
+    self.Count:SetFont(LSM:Fetch(LSM.MediaType.FONT, kb.font), kb.fontSize, kb.fontOutline and "OUTLINE" or "")
 
     if (not Masque) or (self.MSQGroup and self.MSQGroup.db.Disabled) then
         local border = db.border
