@@ -21,7 +21,7 @@ local HasBartender = false
 local HasDominos = false
 local BarAddonLoaded = false
 
-local AddonOverrideActionBySlot 
+local AddonOverrideActionBySlot
 local AddonOverrideButtonByAction
 local AddonLookupActionBySlot = {}
 local AddonLookupButtonByAction = {}
@@ -134,7 +134,7 @@ local function GetBindingForSlots(slots, spellID)
 
             local buttonName = BarAddonLoaded and AddonLookupButtonByAction[addonAction] or LookupButtonByAction[defaultAction]
             local buttonFrame = _G[buttonName]
-            
+
             local text = BarAddonLoaded and GetBindingForAction(addonAction)
 
             if buttonFrame and buttonFrame.action ~= slot and AddonOverrideActionBySlot and AddonOverrideButtonByAction then
@@ -150,7 +150,7 @@ local function GetBindingForSlots(slots, spellID)
 
             if not text then
                 text = GetBindingForAction(defaultAction)
-            end 
+            end
 
             if buttonFrame and (slot > 900 or
                buttonFrame.action == slot) and text then
@@ -164,10 +164,10 @@ local function GetKeyBindForSpellID(spellID)
     local baseSpellID = FindBaseSpellByID(spellID)
 
     local slots = C_ActionBar.FindSpellActionButtons(baseSpellID)
-    
+
     local text = GetBindingForSlots(slots, spellID)
     if text then return text end
-    
+
     slots = GetStanceSlotBySpellID(spellID)
 
     text = GetBindingForSlots(slots, spellID)
@@ -186,11 +186,11 @@ end
 local function LoadActionSlotMap()
     if C_AddOns.IsAddOnLoaded("Dominos") then
         local AddonActionSlotMap = {
-            { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="DominosActionButton",        start = 1,  last = 12}, --Bar 1 
+            { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="DominosActionButton",        start = 1,  last = 12}, --Bar 1
             { actionPrefix = "ACTIONBUTTON",           buttonPrefix ="DominosActionButton",       start = 13, last = 24}, --Bar 2
             { actionPrefix = "MULTIACTIONBAR3BUTTON",   buttonPrefix ="MultiBarRightButton",      start = 25, last = 36}, --Bar 3
-            { actionPrefix = "MULTIACTIONBAR4BUTTON",   buttonPrefix ="MultiBarLeftButton",       start = 37, last = 48}, --Bar 4 
-            { actionPrefix = "MULTIACTIONBAR2BUTTON",   buttonPrefix ="MultiBarBottomRightButton",start = 49, last = 60}, --Bar 5 
+            { actionPrefix = "MULTIACTIONBAR4BUTTON",   buttonPrefix ="MultiBarLeftButton",       start = 37, last = 48}, --Bar 4
+            { actionPrefix = "MULTIACTIONBAR2BUTTON",   buttonPrefix ="MultiBarBottomRightButton",start = 49, last = 60}, --Bar 5
             { actionPrefix = "MULTIACTIONBAR1BUTTON",   buttonPrefix ="MultiBarBottomLeftButton", start = 61, last = 72}, --Bar 6
             { actionPrefix = "ACTIONBUTTON",           buttonPrefix ="DominosActionButton",       start = 73, last = 84}, --Bar 7
             { actionPrefix = "ACTIONBUTTON",           buttonPrefix ="DominosActionButton",       start = 85, last = 96}, --Bar 8
@@ -248,7 +248,7 @@ local function LoadActionSlotMap()
             local id = info.id_start
             for slot = info.start, info.last do
                 local t = id
-                if _G[info.buttonPrefix..slot] then 
+                if _G[info.buttonPrefix..slot] then
                     t = slot
                 end
                 AddonLookupActionBySlot[slot] = info.actionPattern:format(info.buttonPrefix,t)
@@ -317,7 +317,7 @@ function AssistedCombatIconMixin:OnLoad()
             Cooldown = self.Cooldown,
             --HotKey = self.Keybind, --This doesn't work as a Frame. Looking into changing to a Button to make it work..
         }, "SACI")
-        
+
         self.MSQGroup:RegisterCallback(function(Group, Option, Value)
             if Option == "Disabled" and Value == true then
                 HideLikelyMasqueRegions(self)
@@ -353,21 +353,21 @@ function AssistedCombatIconMixin:OnEvent(event, ...)
         self:Update()
     elseif (event == "UNIT_ENTERED_VEHICLE" or event == "UNIT_EXITED_VEHICLE") and self.db.display.HideInVehicle then
         local unit = ...
-        if unit == "player" then 
+        if unit == "player" then
             self:UpdateVisibility()
             self:Update()
         end
     elseif event == "PLAYER_LOGIN" then
         LoadActionSlotMap()
         self:ApplyOptions()
-        
-        if self.db.enabled then 
+
+        if self.db.enabled then
             self:Start()
         else
             self:Stop()
         end
 
-    elseif event == "CVAR_UPDATE" then 
+    elseif event == "CVAR_UPDATE" then
         local arg1, arg2 = ...
         if arg1 =="assistedCombatIconUpdateRate" then
             self.combatUpdateInterval = tonumber(arg2) or self.combatUpdateInterval
@@ -385,7 +385,7 @@ end
 
 function AssistedCombatIconMixin:Stop()
     self.isTicking = false
-    self:SetShown(false) 
+    self:SetShown(false)
 end
 
 function AssistedCombatIconMixin:Tick()
@@ -394,7 +394,7 @@ function AssistedCombatIconMixin:Tick()
 
     self:UpdateVisibility()
 
-    if self:IsShown() then 
+    if self:IsShown() then
         local nextSpell = C_AssistedCombat.GetNextCastSpell()
         if nextSpell and nextSpell ~= 0 and nextSpell ~= self.spellID then
             C_Spell.EnableSpellRangeCheck(self.spellID, false)
@@ -402,7 +402,7 @@ function AssistedCombatIconMixin:Tick()
             self:UpdateCooldown()
         end
     end
-    
+
     self:Update()
 
     C_Timer.After(interval, function()
@@ -413,6 +413,11 @@ end
 function AssistedCombatIconMixin:UpdateVisibility()
     local db = self.db
     local display = db.display
+
+    if not db.enabled then
+        self:SetShown(false)
+        return
+    end
 
     if not self.isTicking then self:SetShown(false) end
 
@@ -515,7 +520,7 @@ function AssistedCombatIconMixin:ApplyOptions()
         self.Icon:SetAllPoints()
         self.MSQGroup:ReSkin()
     end
-    
+
     self:UpdateVisibility()
     self:Update()
 end
