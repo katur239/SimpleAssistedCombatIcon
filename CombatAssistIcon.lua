@@ -142,6 +142,20 @@ local function GetButtonFrameByAction(addonAction, defaultAction)
     return _G[buttonName]
 end
 
+local function GetDominosBlizzardCommand(slot)
+    if slot <= 0 then return end
+    if slot <= 12 then return "ACTIONBUTTON"..slot end
+    if slot <= 24 then return end
+    if slot <= 36 then return "MULTIACTIONBAR3BUTTON"..(slot - 24) end
+    if slot <= 48 then return "MULTIACTIONBAR4BUTTON"..(slot - 36) end
+    if slot <= 60 then return "MULTIACTIONBAR2BUTTON"..(slot - 48) end
+    if slot <= 72 then return "MULTIACTIONBAR1BUTTON"..(slot - 60) end
+    if slot <= 132 then return end
+    if slot <= 144 then return "MULTIACTIONBAR5BUTTON"..(slot - 132) end
+    if slot <= 156 then return "MULTIACTIONBAR6BUTTON"..(slot - 144) end
+    if slot <= 168 then return "MULTIACTIONBAR7BUTTON"..(slot - 156) end
+end
+
 local function GetBindingForSlots(slots, spellID)
     if not slots then return end
 
@@ -154,14 +168,24 @@ local function GetBindingForSlots(slots, spellID)
 
             local buttonFrame = GetButtonFrameByAction(addonAction, defaultAction) 
             
-            local text = BarAddonLoaded and GetBindingForAction(addonAction)
+            local text = nil
+            if HasDominos then
+                -- 1. Check Dominos specific CLICK binding
+                text = GetBindingForAction("CLICK DominosActionButton"..slot..":HOTKEY")
+                -- 2. Check Dominos specific Blizzard mapping
+                if not text then
+                    text = GetBindingForAction(GetDominosBlizzardCommand(slot))
+                end
+            elseif BarAddonLoaded then
+                text = GetBindingForAction(addonAction)
+            end
             
             if not text then 
                 text = GetBindingForAction(defaultAction)
             end 
 
-            if buttonFrame and (slot > 900 or
-               buttonFrame.action == slot) and text then
+            local btnAction = buttonFrame and (buttonFrame.action or buttonFrame:GetAttribute("action"))
+            if text and (not buttonFrame or (slot > 900 or tonumber(btnAction) == slot)) then
                 return text
             end
         end
@@ -194,8 +218,21 @@ end
 local function LoadActionSlotMap()
     if C_AddOns.IsAddOnLoaded("Dominos") then
         for slot = 1, 180 do
-            AddonLookupActionBySlot[slot] = "CLICK DominosActionButton"..slot..":HOTKEY"
-            AddonLookupButtonByAction[AddonLookupActionBySlot[slot]] = "DominosActionButton"..slot
+            local bind = nil
+            if slot >= 1 and slot <= 12 then bind = "ACTIONBUTTON"..slot
+            elseif slot >= 25 and slot <= 36 then bind = "MULTIACTIONBAR3BUTTON"..(slot - 24)
+            elseif slot >= 37 and slot <= 48 then bind = "MULTIACTIONBAR4BUTTON"..(slot - 36)
+            elseif slot >= 49 and slot <= 60 then bind = "MULTIACTIONBAR2BUTTON"..(slot - 48)
+            elseif slot >= 61 and slot <= 72 then bind = "MULTIACTIONBAR1BUTTON"..(slot - 60)
+            elseif slot >= 133 and slot <= 144 then bind = "MULTIACTIONBAR5BUTTON"..(slot - 132)
+            elseif slot >= 145 and slot <= 156 then bind = "MULTIACTIONBAR6BUTTON"..(slot - 144)
+            elseif slot >= 157 and slot <= 168 then bind = "MULTIACTIONBAR7BUTTON"..(slot - 156)
+            end
+
+            if bind then
+                AddonLookupActionBySlot[slot] = bind
+                AddonLookupButtonByAction[bind] = "DominosActionButton"..slot
+            end
         end
         HasDominos  = true
     elseif C_AddOns.IsAddOnLoaded("Bartender4") then
