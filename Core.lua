@@ -478,7 +478,7 @@ function addon:SetupOptions()
                                     AssistedCombatIconFrame:ApplyOptions()
                                 end,
                                 order = 1,
-                                width = "normal",
+                                width = 0.8,
                             },
                             bling = {
                                 type = "toggle",
@@ -490,7 +490,7 @@ function addon:SetupOptions()
                                     AssistedCombatIconFrame:ApplyOptions()
                                 end,
                                 order = 2,
-                                width = "normal",
+                                width = 0.8,
                             },
                             edge = {
                                 type = "toggle",

@@ -529,13 +529,13 @@ function AssistedCombatIconMixin:ApplyOptions()
 end
 
 function AssistedCombatIconMixin:UpdateCooldown()
-    if not IsValidSpellID(self.spellID) and not self:IsShown() then return end
+    if not IsValidSpellID(self.spellID) or not self:IsShown() then return end
     local spellID = self.spellID
 
-    local cdInfo = C_Spell.GetSpellCooldown(spellID)
+    local cdInfo = self.db.cooldown.showSwipe and C_Spell.GetSpellCooldown(spellID)
     local chargeInfo = C_Spell.GetSpellCharges(spellID)
 
-    if cdInfo and self.db.cooldown.showSwipe then
+    if cdInfo then
         self.Cooldown.currentCooldownType = COOLDOWN_TYPE_NORMAL
         self.Cooldown:SetCooldown(cdInfo.startTime, cdInfo.duration, cdInfo.modRate)
     else
