@@ -278,7 +278,6 @@ function AssistedCombatIconMixin:OnLoad()
 
     self.spellID = 61304
     self.combatUpdateInterval = tonumber(C_CVar.GetCVar("assistedCombatIconUpdateRate")) or 0.3
-    self.lastUpdateTime = 0
     self.updateInterval = 1
 
     self.Keybind:SetParent(self.Overlay)
