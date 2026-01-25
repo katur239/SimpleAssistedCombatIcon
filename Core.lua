@@ -467,7 +467,7 @@ function addon:SetupOptions()
                         args = {
                             swipe = {
                                 type = "toggle",
-                                name = "Show Charge Swipe",
+                                name = "Show Swipe",
                                 desc = "Sets whether a bright line should be drawn on the moving edge of the cooldown animation.",
                                 get = function() return addon.db.profile.cooldown.chargeCooldown.showSwipe end, 
                                 set = function(_, val)
@@ -479,7 +479,7 @@ function addon:SetupOptions()
                             },
                             bling = {
                                 type = "toggle",
-                                name = "Show Charge Count",
+                                name = "Show Count",
                                 desc = "Show the number of current charges for the ability.",
                                 get = function() return addon.db.profile.cooldown.chargeCooldown.showCount end,
                                 set = function(_, val)

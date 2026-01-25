@@ -243,6 +243,12 @@ local function LoadActionSlotMap()
     end
 end
 
+local function IsValidSpellID(spellID)
+    return  type(spellID) == "number" 
+            and spellID > 0 
+            and C_Spell.DoesSpellExist(spellID)
+end
+
 AssistedCombatIconMixin = {}
 
 function AssistedCombatIconMixin:OnLoad()
@@ -369,8 +375,10 @@ function AssistedCombatIconMixin:Tick()
 
     if self:IsShown() then 
         local nextSpell = C_AssistedCombat.GetNextCastSpell()
-        if nextSpell and nextSpell ~= 0 and nextSpell ~= self.spellID then
-            C_Spell.EnableSpellRangeCheck(self.spellID, false)
+        if nextSpell and IsValidSpellID(nextSpell) and nextSpell ~= self.spellID then
+            if IsValidSpellID(self.spellID) then
+                C_Spell.EnableSpellRangeCheck(self.spellID, false)
+            end
             self.spellID = nextSpell
             self:UpdateCooldown()
         end
@@ -408,7 +416,7 @@ function AssistedCombatIconMixin:UpdateVisibility()
 end
 
 function AssistedCombatIconMixin:Update()
-    if not self.spellID or not self:IsShown() then return end
+    if not self:IsShown() then return end
 
     local db = self.db
     local spellID = self.spellID
@@ -516,7 +524,6 @@ end
 
 function AssistedCombatIconMixin:UpdateCooldown()
     local spellID = self.spellID
-    if not spellID or spellID == 0 then return end
 
     local cdInfo = C_Spell.GetSpellCooldown(spellID)
     local chargeInfo = C_Spell.GetSpellCharges(spellID)
