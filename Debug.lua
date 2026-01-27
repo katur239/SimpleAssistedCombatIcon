@@ -8,6 +8,7 @@ local function WrapFunction(self, func, name)
         calls = 0,
         total = 0,
         max = 0,
+        min = 999,
     }
 
     local entry = self.data[name]
@@ -20,6 +21,7 @@ local function WrapFunction(self, func, name)
         entry.calls = entry.calls + 1
         entry.total = entry.total + dt
         if dt > entry.max then entry.max = dt end
+        if dt < entry.min then entry.min = dt end
 
         return a,b,c,d,e,f
     end
@@ -43,29 +45,48 @@ function SACIProfiler:Report(limit)
     limit = limit or 40
 
     local list = {}
+    local totalTime = 0
+    local totalCalls = 0
+
     for name, e in pairs(self.data) do
+        local calls = e.calls or 0
+        local total = e.total or 0
+
+        totalTime = totalTime + total
+        totalCalls = totalCalls + calls
+
         table.insert(list, {
             name = name,
-            calls = e.calls,
-            total = e.total,
-            avg = e.total / e.calls,
+            calls = calls,
+            total = total,
+            avg = calls > 0 and (total / calls) or 0,
             max = e.max,
+            min = e.min
         })
     end
 
     table.sort(list, function(a, b)
-        return a.total > b.total
+        return a.max > b.max
     end)
 
     print("------ PROFILER REPORT ------")
     for i = 1, math.min(limit, #list) do
         local e = list[i]
         print(string.format(
-            "%2d. %-40s total: %.3fms  avg: %.5fms  max: %.3fms  calls: %d",
-            i, e.name, e.total, e.avg, e.max, e.calls
+            "%2d. %-30s max: %.3fms  min: %.3fms  avg: %.5fms  total: %.3fms  calls: %d",
+            i, e.name, e.max, e.min, e.avg, e.total, e.calls
         ))
     end
+
+    local overallAvg = totalCalls > 0 and (totalTime / totalCalls) or 0
+
     print("-----------------------------------")
+    print(string.format(
+        "TOTALS: total: %.3fms  avg: %.5fms  calls: %d",
+        totalTime, overallAvg, totalCalls
+    ))
 end
 
 _G.SACIProfiler = SACIProfiler
+SACIProfiler:HookMixin(AssistedCombatIconFrame, "SACI")
+print("SACI Profiler enabled!")
