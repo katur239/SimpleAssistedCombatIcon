@@ -134,6 +134,9 @@ function addon:UpdateDB()
         if not points[profile.position.point] then
             profile.position.point = "CENTER"
         end
+        if not points[profile.position.relativePoint] then
+            profile.position.relativePoint = "CENTER"
+        end
         profile.DBVERSION = 4
     end
 

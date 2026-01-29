@@ -672,8 +672,8 @@ function AssistedCombatIconMixin:OnDragStop()
 
     self.db.position = {
         strata = strata,
-        point = position.point or point,
-        parent = parent or relativeTo,
+        point = point,
+        parent = "UIParent",
         relativePoint = relativePoint,
         X = math.floor(xOfs+0.5),
         Y = math.floor(yOfs+0.5),
