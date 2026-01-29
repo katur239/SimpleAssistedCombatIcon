@@ -10,7 +10,7 @@ local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 local AceDB = LibStub("AceDB-3.0")
 
-local DB_VERSION = 3
+local DB_VERSION = 4
 
 addon = AceAddon:NewAddon(addon, addonName, "AceConsole-3.0", "AceEvent-3.0")
 
@@ -117,6 +117,24 @@ function addon:UpdateDB()
         end
 
         profile.DBVERSION = 3
+    end
+
+    if profile.DBVERSION < 4 then
+        local points = {
+            ["TOPLEFT"] =       "TOPLEFT",
+            ["TOP"] =           "TOP",
+            ["TOPRIGHT"] =      "TOPRIGHT",
+            ["LEFT"] =          "LEFT",
+            ["CENTER"] =        "CENTER",
+            ["RIGHT"] =         "RIGHT",
+            ["BOTTOMLEFT"] =    "BOTTOMLEFT",
+            ["BOTTOM"] =        "BOTTOM",
+            ["BOTTOMRIGHT"] =   "BOTTOMRIGHT",
+        }
+        if not points[profile.position.point] then
+            profile.position.point = "CENTER"
+        end
+        profile.DBVERSION = 4
     end
 
     profile.DBVERSION = DB_VERSION
