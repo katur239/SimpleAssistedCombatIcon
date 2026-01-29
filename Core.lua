@@ -194,7 +194,7 @@ function addon:SetupOptions()
                 desc = "Enable or disable the cooldown and charge swipe animations.",
                 get = function() return addon.db.profile.cooldown.showSwipe end,
                 set = function(_, val)
-                    addon.db.profile.showCooldownSwipe = val
+                    addon.db.profile.cooldown.showSwipe = val
                     AssistedCombatIconFrame:ApplyOptions()
                 end,
                 order = 2,
@@ -1056,6 +1056,8 @@ function addon:SlashCommand(input)
         DEFAULT_CHAT_FRAME:AddMessage(
             PREFIX .. (self.db.profile.enabled and "Enabled" or "Disabled")
         )
+    elseif input =="debug" then
+        AssistedCombatIconFrame:Debug()
     else
         DEFAULT_CHAT_FRAME:AddMessage( PREFIX .. 
             "Usage:\n" ..

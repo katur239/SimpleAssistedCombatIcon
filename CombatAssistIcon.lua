@@ -81,22 +81,13 @@ local function GetStanceSlotBySpellID(spellID)
     return nil
 end
 
-local function GetBindingForSlotsFallBack(slots)
-    if not slots then return end
-
+local function GetConsolePortBinding(slots)
     for _, slot in ipairs(slots) do
         local actionType, _, subType = GetActionInfo(slot)
         if IsRelevantAction(actionType, subType, slot) then
-
-            local defaultAction = LookupActionBySlot[slot]
-            local text = GetBindingForAction(defaultAction)
-            local defaultButtonName = LookupButtonByAction[defaultAction]
-            local buttonFrame = _G[defaultButtonName]
-
-            if buttonFrame and (slot > 900 or
-               buttonFrame.action == slot) and text then
-                return text
-            end
+            local bindingID = ConsolePort:GetActionBinding(slot)
+            local binding = ConsolePort:GetFormattedBindingOwner(bindingID)
+            if binding and binding ~= "" then return binding end
         end
     end
 end
@@ -107,41 +98,28 @@ local function GetBindingForSlots(slots)
     for _, slot in ipairs(slots) do
         local actionType, _, subType = GetActionInfo(slot)
         if IsRelevantAction(actionType, subType, slot) then
-            local buttonFrame, text
-            
-            if ConsolePort and addon.db.profile.Keybind.ConsolePort then 
-                local bindingID = ConsolePort:GetActionBinding(slot)
-                local binding = ConsolePort:GetFormattedBindingOwner(bindingID)
-                if binding and binding ~= "" then return binding end
+            local action =  BarAddonLoaded and AddonLookupActionBySlot[slot] or LookupActionBySlot[slot]
+            local buttonName =  BarAddonLoaded and AddonLookupButtonByAction[action] or LookupButtonByAction[action]
+
+            local buttonFrame = _G[buttonName]            
+            local text = GetBindingForAction(action)
+            if buttonFrame and buttonFrame.action ~= slot and AddonOverrideActionBySlot and AddonOverrideButtonByAction then
+                local ovrAction = AddonOverrideActionBySlot[slot]
+                local ovrButtonName = AddonOverrideButtonByAction[ovrAction]
+                local ovrText = GetBindingForAction(ovrAction)
+
+                if ovrText then
+                    buttonFrame = _G[ovrButtonName]
+                    text = ovrText
+                end
             end
-
-            if BarAddonLoaded then
-                local addonAction = AddonLookupActionBySlot[slot]
-                local buttonName =  AddonLookupButtonByAction[addonAction]
-
-                buttonFrame = _G[buttonName]            
-                text = GetBindingForAction(addonAction)
-
-                if buttonFrame and buttonFrame.action ~= slot and AddonOverrideActionBySlot and AddonOverrideButtonByAction then
-                    local ovrAction = AddonOverrideActionBySlot[slot]
-                    local ovrButtonName = AddonOverrideButtonByAction[ovrAction]
-                    local ovrText = GetBindingForAction(ovrAction)
-
-                    if ovrText then
-                        buttonFrame = _G[ovrButtonName]
-                        text = ovrText
-                    end
-                end
-
-                if buttonFrame and (slot > 900 or
-                buttonFrame.action == slot) and text then
-                    return text
-                end
+            
+            if buttonFrame and (slot > 900 or
+            buttonFrame.action == slot) and text then
+                return text, slot, buttonName, action
             end
         end
     end
-
-    return GetBindingForSlotsFallBack(slots)
 end
 
 local function GetKeyBindForSpellID(spellID)
@@ -149,13 +127,21 @@ local function GetKeyBindForSpellID(spellID)
 
     local baseSpellID = C_SpellBook.FindBaseSpellByID(spellID)
     local slots = C_ActionBar.FindSpellActionButtons(baseSpellID)
-    
-    local text = GetBindingForSlots(slots, spellID)
-    if text then return text end
+    local text, slot, buttonName, action
+
+    if ConsolePort and addon.db.profile.Keybind.ConsolePort then 
+        text = GetConsolePortBinding(slots)
+        if text then return text end
+    end
+
+    local GetBindings = BarAddonLoaded and GetBindingForSlots or GetBindingForSlotsFallBack
+
+    text, slot, buttonName, action = GetBindingForSlots(slots, spellID)
+    if text then return text, slot, buttonName, action end
     
     slots = GetStanceSlotBySpellID(spellID)
-    text = GetBindingForSlots(slots)
-    return text
+    text, slot, buttonName, action = GetBindingForSlots(slots)
+    return text, slot, buttonName, action
 end
 
 local function HideLikelyMasqueRegions(frame)
@@ -171,8 +157,7 @@ local function LoadActionSlotMap()
 
     if C_AddOns.IsAddOnLoaded("ElvUI") then
         local E = unpack(ElvUI)
-        local module = E:GetModule("ActionBars", true)
-        HasElvUI = module and module.db and module.db.enabled or false
+        HasElvUI = E and E.private and E.private.actionbar and E.private.actionbar.enable or false
     elseif C_AddOns.IsAddOnLoaded("Bartender4") then
         HasBartender = true
     elseif C_AddOns.IsAddOnLoaded("Dominos") then
@@ -227,26 +212,46 @@ local function LoadActionSlotMap()
         end
     elseif HasBartender then
         local AddonActionSlotMap = {
-            { actionPattern = "CLICK %s%s:Keybind",     buttonPrefix ="BT4Button",      id_start =  1,  start = 1,  last = 72}, --Action Bars
-            { actionPattern = "CLICK %s%s:Keybind",     buttonPrefix ="BT4Button",      id_start =  1,  start = 73, last = 84}, --Class Bar 1
-            { actionPattern = "CLICK %s%s:Keybind",     buttonPrefix ="BT4Button",      id_start =  1,  start = 85, last = 96}, --Class Bar 2
-            { actionPattern = "CLICK %s%s:Keybind",     buttonPrefix ="BT4Button",      id_start =  1,  start = 97, last = 108},--Class Bar 3
-            { actionPattern = "CLICK %s%s:Keybind",     buttonPrefix ="BT4Button",      id_start =  1,  start = 109,last = 120},--Class Bar 4
-            { actionPattern = "CLICK %s%s:Keybind",     buttonPrefix ="BT4Button",      id_start =  1,  start = 121,last = 132},--(Skyriding)
-            { actionPattern = "CLICK %s%s:Keybind",     buttonPrefix ="BT4Button",      id_start = 145, start = 145,last = 180},
-            { actionPattern = "CLICK %s%s:LeftButton",  buttonPrefix ="BT4StanceButton",id_start = 1,   start = 901,last = 907}, --Stance Bar. Dummy slots
+            { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="BT4Button",  start = 1,  last = 12}, --Bar 1 
+            { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="BT4Button",  start = 13, last = 24}, --Bar 2
+            { actionPrefix = "MULTIACTIONBAR3BUTTON", buttonPrefix ="BT4Button",  start = 25, last = 36}, --Bar 3
+            { actionPrefix = "MULTIACTIONBAR4BUTTON", buttonPrefix ="BT4Button",  start = 37, last = 48}, --Bar 4 
+            { actionPrefix = "MULTIACTIONBAR2BUTTON", buttonPrefix ="BT4Button",  start = 49, last = 60}, --Bar 5 
+            { actionPrefix = "MULTIACTIONBAR1BUTTON", buttonPrefix ="BT4Button",  start = 61, last = 72}, --Bar 6
+            { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="BT4Button",  start = 73, last = 84}, --Bar 7
+            { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="BT4Button",  start = 85, last = 96}, --Bar 8
+            { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="BT4Button",  start = 97, last = 108},--Bar 9
+            { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="BT4Button",  start = 109,last = 120},--Bar 10
+            { actionPrefix = "ACTIONBUTTON",          buttonPrefix ="BT4Button",  start = 121,last = 132},--Bar 11
+            { actionPrefix = "MULTIACTIONBAR5BUTTON", buttonPrefix ="BT4Button",  start = 145,last = 156},--Bar 13
+            { actionPrefix = "MULTIACTIONBAR6BUTTON", buttonPrefix ="BT4Button",  start = 157,last = 168},--Bar 14
+            { actionPrefix = "MULTIACTIONBAR7BUTTON", buttonPrefix ="BT4Button",  start = 169,last = 180},--Bar 15
+            { actionPrefix = "SHAPESHIFTBUTTON",      buttonPrefix ="BT4StanceButton",  start = 901,last = 907},--Stance Bar. Dummy slots
+        }
+
+        local OverrideSlotMap = {
+            { actionPattern = "CLICK %s%s:Keybind",     buttonPrefix ="BT4Button",       start = 1,  last = 180}, --Action Bars
+            { actionPattern = "CLICK %s%s:LeftButton",  buttonPrefix ="BT4StanceButton", start = 901,last = 907}, --Stance Bar. Dummy slots
         }
 
         for _, info in ipairs(AddonActionSlotMap) do
-            local id = info.id_start
             for slot = info.start, info.last do
+                local id = slot - info.start + 1
                 local t = id
                 if _G[info.buttonPrefix..slot] then 
                     t = slot
                 end
-                AddonLookupActionBySlot[slot] = info.actionPattern:format(info.buttonPrefix,t)
+                AddonLookupActionBySlot[slot] = info.actionPrefix..id
                 AddonLookupButtonByAction[AddonLookupActionBySlot[slot]] = info.buttonPrefix..t
-                id = id + 1
+            end
+        end
+
+        AddonOverrideActionBySlot = {}
+        AddonOverrideButtonByAction = {}
+        for _, info in ipairs(OverrideSlotMap) do
+            for slot = info.start, info.last do
+                AddonOverrideActionBySlot[slot] = info.actionPattern:format(info.buttonPrefix, slot)
+                AddonOverrideButtonByAction[AddonOverrideActionBySlot[slot]] = info.buttonPrefix..slot
             end
         end
     elseif HasElvUI then     
@@ -659,11 +664,13 @@ function AssistedCombatIconMixin:OnDragStop()
     self:StopMovingOrSizing()
 
     local point, relativeTo, relativePoint, xOfs, yOfs = self:GetPoint()
-    local strata = self.db.position.strata
-    local parent = self.db.position.parent
+    local position = self.db.position
+    local strata = position.strata
+    local parent = position.parent
+
     self.db.position = {
         strata = strata,
-        point = parent or point,
+        point = position.point or point,
         parent = parent or relativeTo,
         relativePoint = relativePoint,
         X = math.floor(xOfs+0.5),
@@ -671,4 +678,14 @@ function AssistedCombatIconMixin:OnDragStop()
     }
 
     ACR:NotifyChange(addonName)
+end
+
+function AssistedCombatIconMixin:Debug()
+
+    for i, spellID in ipairs(C_AssistedCombat.GetRotationSpells()) do
+        local text, slot, buttonName, action = GetKeyBindForSpellID(spellID)
+        local spellInfo = C_Spell.GetSpellInfo(spellID)
+
+        print(spellInfo.name, spellID, "\n|cff4cc9f0 | Keybind:|r ", text, "\n|cff4cc9f0 | Action Slot:|r ", slot,"\n|cff4cc9f0 | Binding Action:|r ", action, "\n|cff4cc9f0 | Button Name:|r ", buttonName)
+    end
 end
