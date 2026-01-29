@@ -25,6 +25,7 @@ local defaults = {
             HOSTILE_TARGET = false,
             IN_COMBAT = false,
             ALWAYS = true,
+            ONLY_ALL_CONDITIONS = false,
         },
         cooldown = {
             edge = true,
