@@ -201,7 +201,7 @@ function addon:SetupOptions()
             locked = {
                 type = "toggle",
                 name = "Lock Frame",
-                desc = "Lock or unlock the frame for movement.",
+                desc = "Lock or unlock the frame for movement.\n\n|cffffa000TIP: Press and Hold the CONTROL key while hovering over the icon to show a Lock/Unlock toggle button!|r",
                 get = function() return addon.db.profile.locked end,
                 set = function(_, val)
                     addon.db.profile.locked = val
@@ -1078,6 +1078,8 @@ function addon:SlashCommand(input)
         DEFAULT_CHAT_FRAME:AddMessage(
             PREFIX .. (self.db.profile.enabled and "Enabled" or "Disabled")
         )
+    elseif input =="reload" then
+        AssistedCombatIconFrame:Reload()
     elseif input =="debug" then
         AssistedCombatIconFrame:Debug()
     else

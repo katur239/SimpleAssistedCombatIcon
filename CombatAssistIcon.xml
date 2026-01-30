@@ -21,10 +21,10 @@
             <Frame parentKey="Overlay" enableMouse="false" setAllPoints="true" />
             <Cooldown parentKey="Cooldown" enableMouse="false" inherits="CooldownFrameTemplate" setAllPoints="true" />
 			<Cooldown parentKey="chargeCooldown" enableMouse="false" inherits="CooldownFrameTemplate" hideCountdownNumbers="true" />
-            <Button parentKey="lockBtn" inherits="UIPanelButtonTemplate">
-                <Size x="48" y="24"/>
+            <Button parentKey="lockBtn" hidden="true">
+                <Size x="30" y="30"/>
                 <Anchors>
-                    <Anchor point="BOTTOM" y="2"/>
+                    <Anchor point="CENTER" relativePoint="TOPLEFT" x="3" y="-3" />
                 </Anchors>
             </Button>
         </Frames>
