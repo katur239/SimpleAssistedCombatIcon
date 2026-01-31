@@ -204,7 +204,7 @@ local function LoadActionSlotMap()
         AddonOverrideButtonByAction = {}
         for _, info in ipairs(DominosOverrideSlotMap) do
             for slot = info.start, info.last do
-                AddonOverrideActionBySlot[slot] = DominosOverrideActionPattern:format(OverrideButtonPrefix,slot)
+                AddonOverrideActionBySlot[slot] = DominosOverrideActionPattern:format(DominosOverrideButtonPrefix,slot)
                 AddonOverrideButtonByAction[AddonOverrideActionBySlot[slot]] = DominosOverrideButtonPrefix..slot
             end
         end
