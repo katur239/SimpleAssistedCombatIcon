@@ -156,10 +156,12 @@ local function LoadActionSlotMap()
     if C_AddOns.IsAddOnLoaded("ElvUI") then
         local E = unpack(ElvUI)
         HasElvUI = E and E.private and E.private.actionbar and E.private.actionbar.enable or false
-    elseif C_AddOns.IsAddOnLoaded("Bartender4") then
-        HasBartender = true
-    elseif C_AddOns.IsAddOnLoaded("Dominos") then
-        HasDominos = true
+    end
+    if C_AddOns.IsAddOnLoaded("Bartender4") then HasBartender = true end
+    if C_AddOns.IsAddOnLoaded("Dominos") then HasDominos = true end
+    
+    if ( (HasElvUI and HasBartender) or (HasElvUI and HasDominos) or (HasBartender and HasDominos) ) and addon.db.profile.Keybind.show then
+        DEFAULT_CHAT_FRAME:AddMessage("|cff4cc9f0SACI|r: |cffffa000 Warning! More than 1 Action Bar addon is loaded! Keybinds will be inconsistent!|r")
     end
 
     if HasDominos then
@@ -403,6 +405,8 @@ function AssistedCombatIconMixin:OnEvent(event, ...)
         if spellID ~= self.spellID then return end
         self.spellOutOfRange = checksRange == true and inRange == false
     elseif event == "MODIFIER_STATE_CHANGED" then
+        if self:GetParent() ~= UIParent then return end
+
         local key, down = ...
         if key == "LCTRL" or key == "RCTRL" then
             if down == 1 and self:IsMouseOver() then

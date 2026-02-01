@@ -18,6 +18,7 @@ local defaults = {
     profile = {
         enabled = true,
         locked = false,
+        lockButtonMouseover = true,
         display = {
             HideInVehicle = false,
             HideInHealerRole = false,
@@ -345,7 +346,7 @@ function addon:SetupOptions()
                             HideAsHealer = {
                                 type = "toggle",
                                 name = "Hide in Healer Role",
-                                desc = "Hide the icon while in group content as a healer role.\n\n Icon still displays while solo.",
+                                desc = "Hide the icon while in group content as a healer role.\n\n |cffffa000Icon still displays while solo.|r",
                                 order = 2,
                                 width = 1.1,
                                 get = function(info)
@@ -1025,10 +1026,24 @@ function addon:SetupOptions()
                         order = 2,
                         width = 0.8,
                     },
+                    warning = {
+                        type = "group",
+                        name = "",
+                        inline = true,
+                        order = 3,
+                        args = {
+                            parentWarning = {
+                                type = "description",
+                                name = "|cffffa000Dragging the icon will reset the Frame Parent back to the UIParent.|r\n|cffffa000Setting this option will also disable the lock/unlock button on mouseover with the Control key.|r",
+                            },
+                        },
+                    },
                 },
             },
         },
     }
+
+
 
     local options = {
         type = "group",
