@@ -3,6 +3,7 @@ local addonName, addon = ...
 local addonTitle = C_AddOns.GetAddOnMetadata(addonName, "Title")
 
 local LSM = LibStub("LibSharedMedia-3.0")
+local LDS = LibStub("LibDualSpec-1.0")
 
 local Masque = LibStub("Masque",true)
 local AceAddon = LibStub("AceAddon-3.0")
@@ -81,7 +82,8 @@ local defaults = {
 
 function addon:OnInitialize()
     self.db = AceDB:New("SCAIDB", defaults, true)
-    AssistedCombatIconFrame:OnAddonLoaded();
+    LDS:EnhanceDatabase(self.db, addonName)
+    AssistedCombatIconFrame:OnAddonLoaded()
 
     self.db.RegisterCallback(self, "OnNewProfile", "OnProfileChanged")
     self.db.RegisterCallback(self, "OnProfileChanged", "OnProfileChanged")
@@ -180,6 +182,8 @@ end
 
 function addon:SetupOptions()
     local profileOptions = LibStub("AceDBOptions-3.0"):GetOptionsTable(addon.db)
+    LDS:EnhanceOptions(profileOptions, self.db)
+
     profileOptions.inline = false
     profileOptions.order = 9
 
@@ -351,7 +355,7 @@ function addon:SetupOptions()
                             HideAsHealer = {
                                 type = "toggle",
                                 name = "Hide in Healer Role",
-                                desc = "Hide the icon while in group content as a healer role.\n\n |cffffa000Icon still displays while solo.|r",
+                                desc = "Hide the icon while in group content as a healer role.\n\n|cffffa000Icon still displays while solo.|r\n\n|cffffa000TIP: You can use Spec Profiles in the profiles options to hide based on Specs.|r",
                                 order = 2,
                                 width = 1.1,
                                 get = function(info)
@@ -1048,8 +1052,6 @@ function addon:SetupOptions()
         },
     }
 
-
-
     local options = {
         type = "group",
         name = addonTitle,
@@ -1076,8 +1078,8 @@ function addon:SetupOptions()
 end
 
 function addon:OnProfileChanged()
-    AssistedCombatIconFrame.db = addon.db.profile
-    AssistedCombatIconFrame:ApplyOptions()
+    self:UpdateDB()
+    AssistedCombatIconFrame:Reload()
 end
 
 function addon:SlashCommand(input)

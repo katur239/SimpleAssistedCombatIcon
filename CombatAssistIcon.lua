@@ -14,7 +14,7 @@ local C_AssistedCombat  = C_AssistedCombat
 local C_StringUtil      = C_StringUtil
 
 local LSM = LibStub("LibSharedMedia-3.0")
-local LKB = LibStub("LibKeyBound-1.0")
+local LKB = LibStub("LibKeyBound-CUSTOM")
 local ACR = LibStub("AceConfigRegistry-3.0")
 local Masque = LibStub("Masque",true)
 
@@ -103,9 +103,9 @@ local function GetBindingForSlots(slots)
             local buttonFrame = _G[buttonName]            
             local text = GetBindingForAction(action)
 
-            if buttonFrame and buttonFrame.action ~= slot and AddonOverrideActionBySlot and AddonOverrideButtonByAction then
-                action = AddonOverrideActionBySlot[slot]
-                buttonName = AddonOverrideButtonByAction[action]
+            if not text or buttonFrame and buttonFrame.action ~= slot then
+                action = AddonOverrideActionBySlot and AddonOverrideActionBySlot[slot]
+                buttonName = AddonOverrideButtonByAction and AddonOverrideButtonByAction[action]
                 local ovrText = GetBindingForAction(action)
 
                 if ovrText then
@@ -452,7 +452,7 @@ function AssistedCombatIconMixin:OnEvent(event, ...)
 end
 
 function AssistedCombatIconMixin:Start()
-    if self.ticker then return end
+    if self.ticker or not self.db.enabled then return end
 
     self.ticker = C_Timer.NewTicker(self.updateInterval,function()
         self:Tick()
@@ -460,11 +460,11 @@ function AssistedCombatIconMixin:Start()
 end
 
 function AssistedCombatIconMixin:Stop()
+    self:SetShown(false)
     if not self.ticker then return end
 
     self.ticker:Cancel()
     self.ticker = nil
-    self:SetShown(false)
 end
 
 function AssistedCombatIconMixin:IsTickerStalled()
@@ -501,6 +501,11 @@ end
 function AssistedCombatIconMixin:UpdateVisibility()
     local db = self.db
     local display = db.display
+
+    if not db.enabled then 
+        self:SetShown(false)
+        return 
+    end
 
     if display.ALWAYS or not db.locked then
         self:SetVisible(true)
@@ -657,7 +662,8 @@ end
 
 function AssistedCombatIconMixin:Reload()
     self:Stop()
-    LoadActionSlotMap()
+    self.db = addon.db.profile
+    self:ApplyOptions()
     self:Start()
 end
 
