@@ -15,7 +15,7 @@ local C_AssistedCombat  = C_AssistedCombat
 local C_StringUtil      = C_StringUtil
 
 local LSM = LibStub("LibSharedMedia-3.0")
-local LKB = LibStub("LibKeyBound-1.0") or LibStub("LibKeyBound-CUSTOM")
+local LKB = LibStub("LibKeyBound-1.0", true) or LibStub("LibKeyBound-CUSTOM")
 local ACR = LibStub("AceConfigRegistry-3.0")
 local LAB = LibStub("LibActionButton-1.0", true)
 local Masque = LibStub("Masque",true)
@@ -62,7 +62,7 @@ end
 local function GetSpellIDFromActionID(action)
     if not action then return end
 
-    local actionType, id, subbType = GetActionInfo(action)
+    local actionType, id, subType = GetActionInfo(action)
 
     if (actionType == "macro" and subType == "spell")
     or (actionType == "spell" and subType ~= "assistedcombat")
