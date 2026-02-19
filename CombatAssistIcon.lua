@@ -15,7 +15,7 @@ local C_AssistedCombat  = C_AssistedCombat
 local C_StringUtil      = C_StringUtil
 
 local LSM = LibStub("LibSharedMedia-3.0")
-local LKB = LibStub("LibKeyBound-1.0", true) or LibStub("LibKeyBound-CUSTOM")
+local LKB = LibStub("LibKeyBound-CUSTOM")
 local ACR = LibStub("AceConfigRegistry-3.0")
 local LAB = LibStub("LibActionButton-1.0", true)
 local Masque = LibStub("Masque",true)

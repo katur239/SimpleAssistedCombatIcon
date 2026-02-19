@@ -128,6 +128,7 @@ function LibKeyBound:ToShortKey(key)
 		key = key:gsub('MINUS', '%-')
 		key = key:gsub('MULTIPLY', '%*')
 		key = key:gsub('DIVIDE', '%/')
+		key = key:gsub('DECIMAL', '%.')
 
 		key = key:gsub('BACKSPACE', L['Backspace'])
 
@@ -156,6 +157,11 @@ function LibKeyBound:ToShortKey(key)
 		key = key:gsub('RIGHTARROW', L['Right Arrow'])
 		key = key:gsub('UPARROW', L['Up Arrow'])
 
+		key = key:gsub('DOWN', L['Down Arrow'])
+		key = key:gsub('LEFT', L['Left Arrow'])
+		key = key:gsub('RIGHT', L['Right Arrow'])
+		key = key:gsub('UP', L['Up Arrow'])
+		
 		return key
 	end
 end

@@ -904,7 +904,7 @@ function addon:SetupOptions()
                             spell = {
                                 type = "select",
                                 name = "Spell",
-                                desc = "Select the spell to modify the keybinding",
+                                desc = "Select the spell to override.",
                                 values = function()
                                     local val = {}
                                     local spells = C_AssistedCombat.GetRotationSpells()
@@ -929,7 +929,7 @@ function addon:SetupOptions()
                             text = {
                                 type = "input",
                                 name = "Override text",
-                                desc = "Enter the text you wish to be shown for th eKeybind for this spell.",
+                                desc = "Enter the text you wish to be shown for the Keybind for this spell.",
                                 get = function() return addon.db.profile.Keybind.overrides[addon.overrideSpellSelected] end,
                                 set = function(_, val) addon.db.profile.Keybind.overrides[addon.overrideSpellSelected] = val ~= "" and val or nil end,
                                 disabled = function() return not addon.overrideSpellSelected end,
