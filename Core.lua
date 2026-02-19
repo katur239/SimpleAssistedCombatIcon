@@ -12,7 +12,7 @@ local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
 local AceDB = LibStub("AceDB-3.0")
 
-local DB_VERSION = 4
+local DB_VERSION = 5
 
 addon = AceAddon:NewAddon(addon, addonName, "AceConsole-3.0", "AceEvent-3.0")
 
@@ -65,7 +65,11 @@ local defaults = {
             point = "CENTER",
             relativePoint = "CENTER",
             X = 0,
-            Y = 0
+            Y = 0,
+            attachToTargetNameplate = false,
+            nameplateAnchor = "TOP",
+            nameplateOffsetX = 0,
+            nameplateOffsetY = 20,
         },
         Keybind = {
             show = true,
@@ -1113,6 +1117,85 @@ function addon:SetupOptions()
                                 name = "|cffffa000Dragging the icon will reset the Frame Parent back to the UIParent.|r\n|cffffa000Setting this option will also disable the lock/unlock button on mouseover with the Control key.|r",
                             },
                         },
+                    },
+                },
+            },
+            nameplateGroup = {
+                type = "group",
+                name = "Target Nameplate",
+                inline = true,
+                order = 4,
+                args = {
+                    attach = {
+                        type = "toggle",
+                        name = "Attach to Target Nameplate",
+                        desc = "When enabled, the icon follows the target's nameplate.\n\nWhen there is no target or the nameplate is off-screen, the icon returns to the position configured above.\n\n|cffffa000Note: Blizzard restricted nameplate frame access in 12.0. If the nameplate frame is forbidden, attachment will silently fall back to the configured position.|r",
+                        get = function() return addon.db.profile.position.attachToTargetNameplate end,
+                        set = function(_, val)
+                            addon.db.profile.position.attachToTargetNameplate = val
+                            AssistedCombatIconFrame:ApplyOptions()
+                        end,
+                        order = 1,
+                        width = "full",
+                    },
+                    nameplateAnchor = {
+                        type = "select",
+                        name = "Nameplate Anchor",
+                        desc = "Which point on the nameplate the icon is anchored to.",
+                        values = function()
+                            return {
+                                ["TOPLEFT"] =    "TOPLEFT",
+                                ["TOP"] =        "TOP",
+                                ["TOPRIGHT"] =   "TOPRIGHT",
+                                ["LEFT"] =       "LEFT",
+                                ["CENTER"] =     "CENTER",
+                                ["RIGHT"] =      "RIGHT",
+                                ["BOTTOMLEFT"] = "BOTTOMLEFT",
+                                ["BOTTOM"] =     "BOTTOM",
+                                ["BOTTOMRIGHT"] ="BOTTOMRIGHT",
+                            }
+                        end,
+                        get = function() return addon.db.profile.position.nameplateAnchor end,
+                        set = function(_, val)
+                            addon.db.profile.position.nameplateAnchor = val
+                            AssistedCombatIconFrame:ApplyOptions()
+                        end,
+                        disabled = function() return not addon.db.profile.position.attachToTargetNameplate end,
+                        order = 2,
+                        width = 0.8,
+                    },
+                    nameplateOffsetX = {
+                        type = "range",
+                        name = "X Offset",
+                        desc = "Horizontal offset from the nameplate anchor point.",
+                        min = -200, max = 200, step = 1,
+                        get = function() return addon.db.profile.position.nameplateOffsetX end,
+                        set = function(_, val)
+                            addon.db.profile.position.nameplateOffsetX = val
+                            AssistedCombatIconFrame:ApplyOptions()
+                        end,
+                        disabled = function() return not addon.db.profile.position.attachToTargetNameplate end,
+                        order = 3,
+                        width = 0.8,
+                    },
+                    nameplateOffsetY = {
+                        type = "range",
+                        name = "Y Offset",
+                        desc = "Vertical offset from the nameplate anchor point.",
+                        min = -200, max = 200, step = 1,
+                        get = function() return addon.db.profile.position.nameplateOffsetY end,
+                        set = function(_, val)
+                            addon.db.profile.position.nameplateOffsetY = val
+                            AssistedCombatIconFrame:ApplyOptions()
+                        end,
+                        disabled = function() return not addon.db.profile.position.attachToTargetNameplate end,
+                        order = 4,
+                        width = 0.8,
+                    },
+                    dragNote = {
+                        type = "description",
+                        name = "|cffffa000Dragging is disabled in Nameplate mode. Use X/Y offsets above to fine-tune.\nThe icon returns to the position configured in the sections above when no target nameplate is visible.|r",
+                        order = 5,
                     },
                 },
             },

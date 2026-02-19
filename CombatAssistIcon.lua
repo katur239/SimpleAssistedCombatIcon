@@ -3,10 +3,12 @@ local addonTitle = C_AddOns.GetAddOnMetadata(addonName, "Title")
 
 local _G                = _G
 local GetTime           = GetTime
+local C_NamePlate       = C_NamePlate
 local GetActionInfo     = GetActionInfo
 local GetBindingKey     = GetBindingKey
 local GetBindingText    = GetBindingText
 local InCombatLockdown  = InCombatLockdown
+local UnitExists        = UnitExists
 local C_CVar            = C_CVar
 local C_Spell           = C_Spell
 local C_SpellBook       = C_SpellBook
@@ -485,6 +487,9 @@ function AssistedCombatIconMixin:OnLoad()
     self:RegisterEvent("UNIT_ENTERED_VEHICLE")
     self:RegisterEvent("UNIT_EXITED_VEHICLE")
 
+    self:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+    self:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
+
     self:RegisterEvent("MODIFIER_STATE_CHANGED")
     self:RegisterForDrag("LeftButton")
 
@@ -546,6 +551,7 @@ function AssistedCombatIconMixin:OnEvent(event, ...)
         self.spellOutOfRange = checksRange == true and inRange == false
     elseif event == "MODIFIER_STATE_CHANGED" then
         if self:GetParent() ~= UIParent then return end
+        if self.db.position.attachToTargetNameplate then return end
 
         local key, down = ...
         if key == "LCTRL" or key == "RCTRL" then
@@ -563,9 +569,28 @@ function AssistedCombatIconMixin:OnEvent(event, ...)
     elseif event == "PLAYER_REGEN_DISABLED" and self.db.display.IN_COMBAT then
         self:UpdateVisibility()
         self:Update()
-    elseif event == "PLAYER_TARGET_CHANGED" and self.db.display.HOSTILE_TARGET then
-        self:UpdateVisibility()
-        self:Update()
+    elseif event == "PLAYER_TARGET_CHANGED" then
+        local nameplateAttach = self.db.position.attachToTargetNameplate
+        if nameplateAttach then
+            self.targetNameplateToken = nil
+            self:UpdateNameplateAttachment()
+        end
+        if nameplateAttach or self.db.display.HOSTILE_TARGET then
+            self:UpdateVisibility()
+            self:Update()
+        end
+    elseif event == "NAME_PLATE_UNIT_ADDED" then
+        local unitToken = ...
+        if self.db.position.attachToTargetNameplate and UnitIsUnit(unitToken, "target") then
+            self.targetNameplateToken = unitToken
+            self:UpdateNameplateAttachment()
+        end
+    elseif event == "NAME_PLATE_UNIT_REMOVED" then
+        local unitToken = ...
+        if self.db.position.attachToTargetNameplate and unitToken == self.targetNameplateToken then
+            self.targetNameplateToken = nil
+            self:UpdateNameplateAttachment()
+        end
     elseif (event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_SPECIALIZATION_CHANGED" or event == "ROLE_CHANGED_INFORM") and self.db.display.HideAsHealer then
         self:UpdateVisibility()
         self:Update()
@@ -723,11 +748,16 @@ function AssistedCombatIconMixin:ApplyOptions()
     self:SetSize(db.iconSize, db.iconSize)
     self:SetAlpha(db.alpha)
 
-    local parent = _G[db.position.parent]
+    local parent = _G[db.position.parent] or UIParent
     self:SetParent(parent)
     self:ClearAllPoints()
     self:SetScale(UIParent:GetEffectiveScale()/parent:GetEffectiveScale())
     self:SetPoint(db.position.point, db.position.parent, db.position.relativePoint, db.position.X, db.position.Y)
+
+    if db.position.attachToTargetNameplate then
+        self:EnableMouse(false)
+        self:UpdateNameplateAttachment()
+    end
 
     self:SetFrameStrata(frameStrata[db.position.strata])
     self:Raise()
@@ -815,6 +845,31 @@ function AssistedCombatIconMixin:Reload()
     self:Start()
 end
 
+function AssistedCombatIconMixin:UpdateNameplateAttachment()
+    local db = self.db
+    if not db.position.attachToTargetNameplate then return end
+
+    ---@diagnostic disable-next-line: param-type-mismatch
+    local nameplate = C_NamePlate.GetNamePlateForUnit("target")
+
+    ---@diagnostic disable-next-line: undefined-field
+    if nameplate and not nameplate:IsForbidden() then
+        self:ClearAllPoints()
+        self:SetPoint("CENTER", nameplate, db.position.nameplateAnchor,
+            db.position.nameplateOffsetX, db.position.nameplateOffsetY)
+    else
+        if not UnitExists("target") then
+            self:SetShown(false)
+        end
+        local parent = _G[db.position.parent] or UIParent
+        self:SetParent(parent)
+        self:SetScale(UIParent:GetEffectiveScale() / parent:GetEffectiveScale())
+        self:ClearAllPoints()
+        self:SetPoint(db.position.point, db.position.parent, db.position.relativePoint,
+            db.position.X, db.position.Y)
+    end
+end
+
 function AssistedCombatIconMixin:Lock(lock)
     self.lockBtn:SetNormalTexture(lock and "Interface\\buttons\\lockbutton-locked-up" or "Interface\\buttons\\lockbutton-unlocked-up")
     self:EnableMouse(not lock)
@@ -822,6 +877,7 @@ end
 
 function AssistedCombatIconMixin:OnDragStart()
     if self.db.locked then return end
+    if self.db.position.attachToTargetNameplate then return end
     self:StartMoving()
 end
 
