@@ -823,7 +823,11 @@ function AssistedCombatIconMixin:UpdateAnchorPoint()
     if db.position.parentFrame == "__nameplate" then
         local nameplate = C_NamePlate.GetNamePlateForUnit("target")
         if nameplate and not nameplate:IsForbidden() and UnitCanAttack("player", "target") then
-            parent = nameplate
+            self:ClearAllPoints()
+            self:SetParent(UIParent)
+            self:SetScale(db.icon.scale)
+            self:SetPoint(point, nameplate, relativePoint, X, Y)
+            return
         end
     elseif db.position.parentFrame == "__cursor" then
         local cursorX, cursorY = GetCursorPosition()
