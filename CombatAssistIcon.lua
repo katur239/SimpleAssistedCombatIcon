@@ -827,6 +827,7 @@ function AssistedCombatIconMixin:UpdateAnchorPoint()
     local uiScale = UIParent:GetEffectiveScale()
     local parent =_G[db.position.parent] or UIParent
     local point = db.position.point
+    local relativeTo = parent
     local relativePoint = db.position.relativePoint
     local X = db.position.X / db.icon.scale
     local Y = db.position.Y / db.icon.scale
@@ -834,7 +835,8 @@ function AssistedCombatIconMixin:UpdateAnchorPoint()
     if db.position.parentFrame == "__nameplate" then
         local nameplate = C_NamePlate.GetNamePlateForUnit("target")
         if nameplate and not nameplate:IsForbidden() and UnitCanAttack("player", "target") then
-            parent = nameplate
+            parent = UIParent
+            relativeTo = nameplate
         end
     elseif db.position.parentFrame == "__cursor" then
         local cursorX, cursorY = GetCursorPosition()
@@ -843,6 +845,7 @@ function AssistedCombatIconMixin:UpdateAnchorPoint()
         Y = ((cursorY / uiScale) / db.icon.scale) + db.position.Y
 
         parent = UIParent
+        relativeTo = UIParent
         relativePoint = "BOTTOMLEFT"
         self:EnableMouse(false)
     end
@@ -850,7 +853,7 @@ function AssistedCombatIconMixin:UpdateAnchorPoint()
     self:ClearAllPoints()
     self:SetParent(parent)
     self:SetScale(db.icon.scale * (uiScale / parent:GetEffectiveScale()) or 1)
-    self:SetPoint(point, parent, relativePoint, X, Y)
+    self:SetPoint(point, relativeTo, relativePoint, X, Y)
 end
 
 function AssistedCombatIconMixin:UpdateCooldown()
