@@ -72,6 +72,7 @@ local defaults = {
             strata = 3,
             parent = "UIParent",
             parentFrame = "UIParent",
+            InheritFrameVisibility = true,
             point = "CENTER",
             relativePoint = "CENTER",
             X = 0,
@@ -100,7 +101,7 @@ local BuiltinParentFrames = {
     PersonalResourceDisplayFrame = "Personal Resource Display",
     UIParent = "Screen",
     __nameplate = "Target Nameplate",
-    __cursor = "Cursor",
+    __cursor = "Mouse Cursor",
     __other = "Other",
 }
 
@@ -1015,7 +1016,7 @@ function addon:SetupOptions()
         type = "group",
         name = "Position",
         inline = false,
-        order = 2,
+        order = 3,
         args = {
             positionGroup = {
                 type = "group",
@@ -1077,7 +1078,7 @@ function addon:SetupOptions()
                     },
                 }
             },
-            group1 = {
+            group2 = {
                 type = "group",
                 name = "Display",
                 inline = true,
@@ -1108,73 +1109,106 @@ function addon:SetupOptions()
                     },
                 }
             },
-            subgroup2 = {
+            group3 = {
                 type = "group",
                 name = "Anchor",
+                order = 2,
                 inline = true,
                 args = {
-                    parent = {
-                        type = "select",
-                        name = " Frame Parent",
-                        desc = "Enter a frame name to anchor the icon to.",
-                        values = BuiltinParentFrames,
-                        get = function() return addon.db.profile.position.parentFrame end,
-                        set = function(_, val)
-                            addon.db.profile.position.parentFrame = val
-                            if not val:match("^__") then
-                                addon.db.profile.position.parent = val
-                            end
-                            AssistedCombatIconFrame:ApplyOptions()
-                        end,
+                    subgroup1 = {
+                        type = "group",
+                        name = "",
+                        inline = true,
                         order = 1,
-                        width = 1.2,
+                        args = {
+                            parent = {
+                                type = "select",
+                                name = "Anchor Frame",
+                                desc = "Select a frame to anchor the icon to.",
+                                values = BuiltinParentFrames,
+                                get = function() return addon.db.profile.position.parentFrame end,
+                                set = function(_, val)
+                                    addon.db.profile.position.parentFrame = val
+                                    if not val:match("^__") then
+                                        addon.db.profile.position.parent = val
+                                    end
+                                    AssistedCombatIconFrame:ApplyOptions()
+                                end,
+                                order = 1,
+                                width = 1.2,
+                            },
+                            point = {
+                                type = "select",
+                                name = "Icon Anchor Point",
+                                desc = "What point on the Icon should it be anchored by",
+                                values = function()
+                                    local points = {
+                                        ["TOPLEFT"] = "TOPLEFT",
+                                        ["TOP"] = "TOP",
+                                        ["TOPRIGHT"] = "TOPRIGHT",
+                                        ["LEFT"] = "LEFT",
+                                        ["CENTER"] = "CENTER",
+                                        ["RIGHT"] = "RIGHT",
+                                        ["BOTTOMLEFT"] = "BOTTOMLEFT",
+                                        ["BOTTOM"] = "BOTTOM",
+                                        ["BOTTOMRIGHT"] = "BOTTOMRIGHT",
+                                    }
+                                    return points
+                                end,
+                                get = function() return addon.db.profile.position.point end,
+                                set = function(_, val)
+                                    addon.db.profile.position.point = val
+                                    AssistedCombatIconFrame:ApplyOptions()
+                                end,
+                                order = 2,
+                                width = 0.8,
+                            },
+                        },
                     },
-                    frame = {
-                        type = "input",
-                        name = "Specific Frame",
-                        desc = "Enter a frame name to anchor the icon to.",
-                        get = function() return addon.db.profile.position.parent end,
-                        set = function(_, val)
-                            if val == "" then val = "UIParent" end
-                            addon.db.profile.position.parent = val
-                            AssistedCombatIconFrame:ApplyOptions()
-                        end,
-                        validate = function(info, value)
-                            if not _G[value] then
-                                return "That frame doesn't exist."
-                            end
-                            return true
-                        end,
-                        hidden = function()
-                            return addon.db.profile.position.parentFrame ~= "__other"
-                        end,
-                        order = 3,
-                    },
-                    point = {
-                        type = "select",
-                        name = "Icon Anchor Point",
-                        desc = "What point on the Icon should it be anchored by",
-                        values = function()
-                            local points = {
-                                ["TOPLEFT"] = "TOPLEFT",
-                                ["TOP"] = "TOP",
-                                ["TOPRIGHT"] = "TOPRIGHT",
-                                ["LEFT"] = "LEFT",
-                                ["CENTER"] = "CENTER",
-                                ["RIGHT"] = "RIGHT",
-                                ["BOTTOMLEFT"] = "BOTTOMLEFT",
-                                ["BOTTOM"] = "BOTTOM",
-                                ["BOTTOMRIGHT"] = "BOTTOMRIGHT",
-                            }
-                            return points
-                        end,
-                        get = function() return addon.db.profile.position.point end,
-                        set = function(_, val)
-                            addon.db.profile.position.point = val
-                            AssistedCombatIconFrame:ApplyOptions()
-                        end,
+                    subgroup2 = {
+                        type = "group",
+                        name = "",
+                        inline = true,
                         order = 2,
-                        width = 0.8,
+                        args = {
+                            frame = {
+                                type = "input",
+                                name = "Specific Frame Name",
+                                desc = "Enter a frame name to anchor the icon to.",
+                                get = function() return addon.db.profile.position.parent end,
+                                set = function(_, val)
+                                    if val == "" then val = "UIParent" end
+                                    addon.db.profile.position.parent = val
+                                    AssistedCombatIconFrame:ApplyOptions()
+                                end,
+                                validate = function(info, value)
+                                    if not _G[value] then
+                                        return "That frame doesn't exist."
+                                    end
+                                    return true
+                                end,
+                                hidden = function() return addon.db.profile.position.parentFrame ~= "__other" end,
+                                order = 1,
+                                width = 1.2,
+                            },
+                            VisibilityInherit = {
+                                type = "toggle",
+                                name = "Inherit Frame Visibility",
+                                desc = "Should the Icon hide when the anchor frame is not visible?",
+                                get = function() return addon.db.profile.position.InheritFrameVisibility end,
+                                set = function(_, val)
+                                    addon.db.profile.position.InheritFrameVisibility = val
+                                end,
+                                order = 2,
+                                width = 1.1,
+                                hidden = function()
+                                    local v = addon.db.profile.position.parentFrame == "UIParent"
+                                        or addon.db.profile.position.parentFrame == "__cursor"
+                                        or addon.db.profile.position.parentFrame == "__nameplate"
+                                    return v
+                                end,
+                            },
+                        },
                     },
                     warning = {
                         type = "group",
@@ -1184,7 +1218,7 @@ function addon:SetupOptions()
                         args = {
                             parentWarning = {
                                 type = "description",
-                                name = "|cffffa000Unlocking and dragging the icon is disabled when the Frame Parent is not set to Screen.|r\n\n|cffffa000Cooldown Manager addons may interfere with SACI when Frame anchor is set to one of the viewers.|r",
+                                name = "|cffffa000Unlocking and dragging the icon is disabled when the Frame Parent is not set to Screen.|r",
                             },
                         },
                     },

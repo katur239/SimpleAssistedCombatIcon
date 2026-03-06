@@ -18,6 +18,7 @@ local C_ActionBar       = C_ActionBar
 local C_AssistedCombat  = C_AssistedCombat
 local C_NamePlate       = C_NamePlate
 local C_StringUtil      = C_StringUtil
+local C_Timer           = C_Timer
 
 local LSM = LibStub("LibSharedMedia-3.0")
 local LKB = LibStub("LibKeyBound-CUSTOM")
@@ -154,6 +155,9 @@ end
 local function GetKeyBindForSpellID(spellID)
     if not IsValidSpellID(spellID) then return end
 
+    local override = addon.db.profile.Keybind.overrides[spellID]
+    if override then return override end
+    
     if ConsolePort and addon.db.profile.Keybind.ConsolePort then
         slots = C_ActionBar.FindSpellActionButtons(spellID)
         if slots then 
@@ -164,9 +168,6 @@ local function GetKeyBindForSpellID(spellID)
             end
         end
     end
-
-    local override = addon.db.profile.Keybind.overrides[spellID]
-    if override then return override end
 
     local buttons = GetButtonsForSpellID(spellID)
     if not buttons then return end
@@ -670,9 +671,9 @@ function AssistedCombatIconMixin:Tick()
 end
 
 function AssistedCombatIconMixin:OnUpdate()
-    if self.db.position.parentFrame ~= "__cursor" then return end
-
-    self:UpdateAnchorPoint()
+    if self.db.position.parentFrame == "__cursor" then
+        self:UpdateAnchorPoint()
+    end
 end
 
 function AssistedCombatIconMixin:SetVisible(visibility)
@@ -687,11 +688,27 @@ end
 function AssistedCombatIconMixin:UpdateVisibility()
     local db = self.db
     local display = db.display
-    local nameplate = db.position.parentFrame == "__nameplate" and UnitCanAttack("player","target") and C_NamePlate.GetNamePlateForUnit("target")
-
-    if not db.enabled or db.position.parentFrame == "__nameplate" and not nameplate then 
+    
+    if not db.enabled then 
         self:SetShown(false)
         return 
+    end
+
+    local parentFrame = db.position.parentFrame
+
+    if parentFrame == "__nameplate" then 
+        local nameplateShown = UnitCanAttack("player","target") and C_NamePlate.GetNamePlateForUnit("target")
+        if not nameplateShown then 
+            self:SetShown(false)
+            return
+        end
+    elseif parentFrame ~= "UIParent" and parentFrame ~= "__cursor" and db.position.InheritFrameVisibility then 
+        local parent = _G[db.position.parent]
+        if parent and parent.IsVisible and parent.GetAlpha
+          and not (parent:IsVisible() and parent:GetAlpha() > 0) then
+            self:SetShown(false)
+            return
+        end
     end
 
     if display.ALWAYS or not db.locked then
@@ -731,6 +748,8 @@ function AssistedCombatIconMixin:Update()
 
     local db = self.db
     local spellID = self.spellID
+
+    if db.locked then self:EnableMouse(false) end
 
     local text = db.Keybind.show and GetKeyBindForSpellID(spellID) or ""
     self.Keybind:SetText(text)
@@ -825,9 +844,8 @@ function AssistedCombatIconMixin:UpdateAnchorPoint()
     local db = self.db
 
     local uiScale = UIParent:GetEffectiveScale()
-    local parent =_G[db.position.parent] or UIParent
     local point = db.position.point
-    local relativeTo = parent
+    local relativeTo = _G[db.position.parent] or UIParent
     local relativePoint = db.position.relativePoint
     local X = db.position.X / db.icon.scale
     local Y = db.position.Y / db.icon.scale
@@ -835,7 +853,6 @@ function AssistedCombatIconMixin:UpdateAnchorPoint()
     if db.position.parentFrame == "__nameplate" then
         local nameplate = C_NamePlate.GetNamePlateForUnit("target")
         if nameplate and not nameplate:IsForbidden() and UnitCanAttack("player", "target") then
-            parent = UIParent
             relativeTo = nameplate
         end
     elseif db.position.parentFrame == "__cursor" then
@@ -844,15 +861,13 @@ function AssistedCombatIconMixin:UpdateAnchorPoint()
         X = ((cursorX / uiScale) / db.icon.scale) + db.position.X
         Y = ((cursorY / uiScale) / db.icon.scale) + db.position.Y
 
-        parent = UIParent
         relativeTo = UIParent
         relativePoint = "BOTTOMLEFT"
         self:EnableMouse(false)
     end
 
     self:ClearAllPoints()
-    self:SetParent(parent)
-    self:SetScale(db.icon.scale * (uiScale / parent:GetEffectiveScale()) or 1)
+    self:SetScale(db.icon.scale)
     self:SetPoint(point, relativeTo, relativePoint, X, Y)
 end
 
@@ -910,19 +925,16 @@ end
 function AssistedCombatIconMixin:OnDragStop()
     self:StopMovingOrSizing()
 
+    local position = self.db.position
     local point, relativeTo, relativePoint, xOfs, yOfs = self:GetPoint()
-    local strata = self.db.position.strata
 
-    self.db.position = {
-        strata = strata,
-        point = point,
-        parent = "UIParent",
-        parentFrame = "UIParent",
-        relativePoint = relativePoint,
-        X = math.floor(xOfs+0.5),
-        Y = math.floor(yOfs+0.5),
-    }
-    
+    position.point = point
+    position.parent = "UIParent"
+    position.parentFrame = "UIParent"
+    position.relativePoint = relativePoint
+    position.X = math.floor(xOfs+0.5)
+    position.Y = math.floor(yOfs+0.5)
+        
     if ACD.OpenFrames[addonName] then
         ACR:NotifyChange(addonName)
     end
