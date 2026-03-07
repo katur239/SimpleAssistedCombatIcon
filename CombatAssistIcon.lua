@@ -568,11 +568,12 @@ function AssistedCombatIconMixin:OnEvent(event, ...)
         if spellID ~= self.spellID then return end
         self.spellOutOfRange = checksRange == true and inRange == false
     elseif event == "MODIFIER_STATE_CHANGED" then
-        if self:GetParent() ~= UIParent then return end
-
         local key, down = ...
+        local success, isMouseOver = pcall(function() return self:IsMouseOver() end)
+        if not success then return end
+
         if key == "LCTRL" or key == "RCTRL" then
-            if down == 1 and self:IsMouseOver() then
+            if down == 1 and isMouseOver then
                 self.lockBtn:SetShown(true)
             elseif down == 0 and self.lockBtn:IsShown() then
                 self.lockBtn:SetShown(false)
@@ -697,8 +698,8 @@ function AssistedCombatIconMixin:UpdateVisibility()
     local parentFrame = db.position.parentFrame
 
     if parentFrame == "__nameplate" then 
-        local nameplateShown = UnitCanAttack("player","target") and C_NamePlate.GetNamePlateForUnit("target")
-        if not nameplateShown then 
+        local nameplate = C_NamePlate.GetNamePlateForUnit("target")
+        if not UnitCanAttack("player","target") or not nameplate then 
             self:SetShown(false)
             return
         end
@@ -711,7 +712,7 @@ function AssistedCombatIconMixin:UpdateVisibility()
         end
     end
 
-    if display.ALWAYS or not db.locked then
+    if display.ALWAYS then
         self:SetVisible(true)
         return
     end
