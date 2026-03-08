@@ -634,6 +634,7 @@ function AssistedCombatIconMixin:OnEvent(event, ...)
 end
 
 function AssistedCombatIconMixin:Start()
+    addon:UpdateBroker()
     if self.ticker or not self.db.enabled then return end
 
     self.ticker = C_Timer.NewTicker(self.updateInterval,function()
@@ -643,6 +644,7 @@ end
 
 function AssistedCombatIconMixin:Stop()
     self:SetShown(false)
+    addon:UpdateBroker()
     if not self.ticker then return end
 
     self.ticker:Cancel()
