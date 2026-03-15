@@ -8,6 +8,7 @@ local GetBindingKey     = GetBindingKey
 local GetBindingText    = GetBindingText
 local InCombatLockdown  = InCombatLockdown
 local UnitCanAttack     = UnitCanAttack
+local UnitIsDead        = UnitIsDead
 local UnitIsUnit        = UnitIsUnit
 local UnitInVehicle     = UnitInVehicle
 local UnitGroupRolesAssigned  = UnitGroupRolesAssigned
@@ -65,6 +66,13 @@ end
 
 local function IsRotationalSpell(spellID)
     return rotationalSpells[spellID] or false
+end
+
+local function SafeSetShown(frame, shown)
+    local success = pcall(frame.SetShown, frame, shown)
+    local alpha = addon.db.profile.fadeOutHide and addon.db.profile.fadeOutAlpha or addon.db.profile.alpha
+    frame:SetAlpha(shown and alpha or 0)
+    return success
 end
 
 local function IsMountedLocal()
@@ -643,7 +651,7 @@ function AssistedCombatIconMixin:Start()
 end
 
 function AssistedCombatIconMixin:Stop()
-    self:SetShown(false)
+    SafeSetShown(self,false)
     addon:UpdateBroker()
     if not self.ticker then return end
 
@@ -682,9 +690,9 @@ end
 function AssistedCombatIconMixin:SetVisible(visibility)
     if self.db.fadeOutHide then 
         self:SetAlpha(visibility and self.db.alpha or self.db.fadeOutAlpha)
-        self:SetShown(true)
+        SafeSetShown(self, true)
     else
-        self:SetShown(visibility)
+        SafeSetShown(self, visibility)
     end
 end
 
@@ -692,8 +700,8 @@ function AssistedCombatIconMixin:UpdateVisibility()
     local db = self.db
     local display = db.display
     
-    if not db.enabled then 
-        self:SetShown(false)
+    if not db.enabled then
+        SafeSetShown(self, false)
         return 
     end
 
@@ -701,15 +709,15 @@ function AssistedCombatIconMixin:UpdateVisibility()
 
     if parentFrame == "__nameplate" then 
         local nameplate = C_NamePlate.GetNamePlateForUnit("target")
-        if not UnitCanAttack("player","target") or not nameplate then 
-            self:SetShown(false)
+        if not UnitCanAttack("player","target") or not nameplate then
+            SafeSetShown(self, false)
             return
         end
     elseif parentFrame ~= "UIParent" and parentFrame ~= "__cursor" and db.position.InheritFrameVisibility then 
         local parent = _G[db.position.parent]
         if parent and parent.IsVisible and parent.GetAlpha
           and not (parent:IsVisible() and parent:GetAlpha() > 0) then
-            self:SetShown(false)
+            SafeSetShown(self, false)
             return
         end
     end
@@ -720,26 +728,27 @@ function AssistedCombatIconMixin:UpdateVisibility()
     end
 
     if display.ONLY_ALL_CONDITIONS then
-        if     (display.HOSTILE_TARGET and not UnitCanAttack("player", "anyenemy"))
-            or (display.IN_COMBAT and not InCombatLockdown())
-            or (display.HideInVehicle and C_PetBattles.IsInBattle())
-            or (display.HideInVehicle and UnitInVehicle("player"))
-            or (display.HideAsHealer and UnitGroupRolesAssigned("player") == "HEALER")
-            or (display.HideOnMount and IsMountedLocal())
+        if (display.HOSTILE_TARGET and not UnitCanAttack("player", "anyenemy"))
+        or (display.HOSTILE_TARGET and UnitIsDead("target"))
+        or (display.IN_COMBAT and not InCombatLockdown())
+        or (display.HideInVehicle and C_PetBattles.IsInBattle())
+        or (display.HideInVehicle and UnitInVehicle("player"))
+        or (display.HideAsHealer and UnitGroupRolesAssigned("player") == "HEALER")
+        or (display.HideOnMount and IsMountedLocal())
         then
             self:SetVisible(false)
         else
             self:SetVisible(db.position.parentFrame ~= "__nameplate" or nameplate)
         end
     else
-        local show =   (display.HOSTILE_TARGET and UnitCanAttack("player", "anyenemy"))
-                    or (display.IN_COMBAT and InCombatLockdown())
-                    or (not display.IN_COMBAT and not display.HOSTILE_TARGET)
+        local show = (display.HOSTILE_TARGET and UnitCanAttack("player", "anyenemy") and not UnitIsDead("target"))
+                  or (display.IN_COMBAT and InCombatLockdown())
+                  or (not display.IN_COMBAT and not display.HOSTILE_TARGET)
 
-        local hide =   (display.HideInVehicle and UnitInVehicle("player"))
-                    or (display.HideInVehicle and C_PetBattles.IsInBattle())
-                    or (display.HideAsHealer and UnitGroupRolesAssigned("player") == "HEALER")
-                    or (display.HideOnMount and IsMountedLocal())
+        local hide = (display.HideInVehicle and UnitInVehicle("player"))
+                  or (display.HideInVehicle and C_PetBattles.IsInBattle())
+                  or (display.HideAsHealer and UnitGroupRolesAssigned("player") == "HEALER")
+                  or (display.HideOnMount and IsMountedLocal())
 
         self:SetVisible(show and not hide
             and (db.position.parentFrame ~= "__nameplate" or nameplate))
