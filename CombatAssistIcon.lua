@@ -69,9 +69,10 @@ local function IsRotationalSpell(spellID)
 end
 
 local function SafeSetShown(frame, shown)
-    local success = pcall(frame.SetShown, frame, shown)
-    local alpha = addon.db.profile.fadeOutHide and addon.db.profile.fadeOutAlpha or addon.db.profile.alpha
-    frame:SetAlpha(shown and alpha or 0)
+    local success = pcall(frame.SetShown, frame, addon.db.profile.fadeOutHide or shown)
+    local minAlpha = addon.db.profile.fadeOutHide and addon.db.profile.fadeOutAlpha or 0
+    local maxAlpha = addon.db.profile.alpha or 1
+    frame:SetAlpha(shown and maxAlpha or minAlpha)
     return success
 end
 
@@ -688,12 +689,7 @@ function AssistedCombatIconMixin:OnUpdate()
 end
 
 function AssistedCombatIconMixin:SetVisible(visibility)
-    if self.db.fadeOutHide then 
-        self:SetAlpha(visibility and self.db.alpha or self.db.fadeOutAlpha)
-        SafeSetShown(self, true)
-    else
-        SafeSetShown(self, visibility)
-    end
+    SafeSetShown(self, visibility)
 end
 
 function AssistedCombatIconMixin:UpdateVisibility()
@@ -889,21 +885,28 @@ function AssistedCombatIconMixin:UpdateCooldown()
 
     local cdInfo = self.db.cooldown.showSwipe and C_Spell.GetSpellCooldown(spellID)
     local chargeInfo = self.db.cooldown.chargeCooldown.showSwipe and C_Spell.GetSpellCharges(spellID)
+    local chargeCount = self.db.cooldown.chargeCooldown.showCount and C_Spell.GetSpellCharges(spellID)
 
     if cdInfo then
+        local cdDuration = C_Spell.GetSpellCooldownDuration(spellID)
         self.Cooldown.currentCooldownType = COOLDOWN_TYPE_NORMAL
-        self.Cooldown:SetCooldown(cdInfo.startTime, cdInfo.duration, cdInfo.modRate)
+        self.Cooldown:SetCooldownFromDurationObject(cdDuration)
     else
         self.Cooldown:Clear()
     end
 
     if chargeInfo then
-        local charges = (chargeInfo and self.db.cooldown.chargeCooldown.showCount) and chargeInfo.currentCharges or 0
+        local chargeDuration = C_Spell.GetSpellChargeDuration(spellID)
+        self.chargeCooldown:SetCooldownFromDurationObject(chargeDuration)
+    else
+        self.chargeCooldown:Clear()
+    end
+
+    if chargeCount then
+        local charges = chargeInfo.currentCharges or 0
         self.Count:SetText(C_StringUtil.TruncateWhenZero(charges))
-        self.chargeCooldown:SetCooldown(chargeInfo.cooldownStartTime, chargeInfo.cooldownDuration, chargeInfo.chargeModRate)
     else
         self.Count:SetText(nil)
-        self.chargeCooldown:Clear()
     end
 end
 
