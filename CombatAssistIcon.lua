@@ -6,6 +6,7 @@ local GetTime           = GetTime
 local GetActionInfo     = GetActionInfo
 local GetBindingKey     = GetBindingKey
 local GetBindingText    = GetBindingText
+local GetMacroSpell     = GetMacroSpell
 local InCombatLockdown  = InCombatLockdown
 local UnitCanAttack     = UnitCanAttack
 local UnitIsDead        = UnitIsDead
@@ -101,12 +102,14 @@ end
 local function GetBindingForAction(action)
     if not action then return end
 
-    local key = GetBindingKey(action)
-    if not key then return end
-
-    local text = LKB:ToShortKey(key)
-
-    if text then return text end
+    local keys = { GetBindingKey(action) }
+    for i = 1, #keys do
+        local key = keys[i]
+        if type(key) == "string" then
+            local text = LKB:ToShortKey(key)
+            if text then return text end
+        end
+    end
 end
 
 local function GetButtonsForSpellID(spellID)
@@ -168,7 +171,7 @@ local function GetKeyBindForSpellID(spellID)
     if override then return override end
     
     if ConsolePort and addon.db.profile.Keybind.ConsolePort then
-        slots = C_ActionBar.FindSpellActionButtons(spellID)
+        local slots = C_ActionBar.FindSpellActionButtons(spellID)
         if slots then 
             for _, slot in ipairs(slots) do
                 local bindingID = ConsolePort:GetActionBinding(slot)
@@ -262,11 +265,11 @@ local function LoadRotationalSpells()
 end
 
 local function LoadActionSlotMap()
-    if C_AddOns.IsAddOnLoaded("ElvUI") then
+    if C_AddOns.IsAddOnLoaded("ElvUI") or _G.ElvUI then
         local E = unpack(ElvUI)
         HasElvUI = E and E.private and E.private.actionbar and E.private.actionbar.enable or false
     end
-    if C_AddOns.IsAddOnLoaded("Bartender4") then HasBartender = true end
+    if C_AddOns.IsAddOnLoaded("Bartender4") or _G.Bartender4 then HasBartender = true end
     if C_AddOns.IsAddOnLoaded("Dominos") then HasDominos = true end
     
     if ( (HasElvUI and HasBartender) or (HasElvUI and HasDominos) or (HasBartender and HasDominos) ) and addon.db.profile.Keybind.show then
@@ -380,7 +383,7 @@ local function LoadActionSlotMap()
         for _, info in ipairs(Bartender4OverrideSlotMap) do
             for slot = info.start, info.last do
                 local id = slot - info.start + 1
-                local index = slot < 900 and id or slot
+                local index = id
                 local buttonName = info.buttonPrefix..index
                 
                 OverrideBindingByButton[buttonName] = info.actionPattern:format(info.buttonPrefix, index)

@@ -201,7 +201,7 @@ function addon:NormalizeDisplayOptions(key, val)
         return
     end
 
-    if key ~= "ALWAYS" and k ~= "ONLY_ALL_CONDITIONS" and val then
+    if key ~= "ALWAYS" and key ~= "ONLY_ALL_CONDITIONS" and val then
         display.ALWAYS = false
         return
     end

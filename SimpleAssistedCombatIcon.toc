@@ -1,11 +1,11 @@
-## Interface: 120001,120005
+## Interface: 120007
 ## OptionalDeps: Ace3, LibSharedMedia-3.0
 ## IconTexture: Interface/Icons/ui_spellbook_onebutton.blp
 ## Category: Combat
 ## Title: Simple Assisted Combat Icon
 ## Notes: A simple icon to display the current recommended ability from Blizzards Assisted Combat API.
 ## Author: Katur239
-## Version: 12.0.1.12
+## Version: 12.0.7.1
 ## SavedVariables: SCAIDB
 
 Libs\LibStub\LibStub.lua
