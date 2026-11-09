@@ -1,4 +1,4 @@
-## Interface: 120007
+## Interface: 120105
 ## OptionalDeps: Ace3, LibSharedMedia-3.0
 ## IconTexture: Interface/Icons/ui_spellbook_onebutton.blp
 ## Category: Combat
